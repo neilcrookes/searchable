@@ -1,6 +1,3 @@
-<style type="text/css">
-.highlight {font-weight:bolder;}
-</style>
 <h2>Search results</h2>
 <?php
 echo $form->create('SearchIndex', array('url' => array('plugin' => 'searchable', 'controller' => 'search_indexes', 'action' => 'index')));
@@ -20,7 +17,7 @@ echo $form->end('View Search Results');
       <?php endif; ?>
     </li>
     <?php endforeach; ?>
-  </ul
+  </ul>
   <?php
   $params = array_intersect_key($this->params, array_flip(array('type', 'term')));
   $params = array_map('urlencode', $params);
