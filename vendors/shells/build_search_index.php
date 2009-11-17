@@ -124,24 +124,40 @@ class BuildSearchIndexShell extends Shell {
    */
   protected function _setAvailableModels() {
 
-    // Get a list of all models, method available on ModelTask
-    $this->Model->listAll($this->_useDbConfig, false);
-    $tables = $this->Model->__tables;
+    // Initialise paths array with paths to app/models
+    $paths = array(MODELS);
+
+    // Get a list of the plugins
+    $plugins = Configure::listObjects('plugin');
+
+    // For each plugin, add the plugin model path to paths and instantiate the
+    // plugin AppModel in case the plugin contains a model that is Searchable
+    // and we need to instantiate it later
+    if(!empty($plugins)) {
+      foreach($plugins AS $plugin) {
+        $paths[] = APP . 'plugins' . DS . Inflector::underscore($plugin) . DS . 'models' . DS;
+        App::import('Model', $plugin . '.' . $plugin . 'Model');
+      }
+    }
+
+    // Get a list of all the models in all the paths and sort them
+    // alphabetically
+    $modelNames = Configure::listObjects('model', $paths);
+    sort($modelNames);
 
     // Store those that exist and have Searchable attached
-    foreach ($tables as $table) {
-      // Determine the model name from the table
-      $modelName = $this->Model->_modelName($table);
-      // If you can't load it, skip
-      if (!App::import('Model', $modelName)) {
+    foreach ($modelNames as $modelName) {
+
+      // Try to import the model
+      if (!App::import('Model', $modelName, true, $paths)) {
         continue;
       }
-      // Instantiate
-      $modelObj =& new $modelName();
+
       // If Searchable not attached, skip
-      if (!$modelObj->Behaviors->attached('Searchable')) {
+      if (!ClassRegistry::init($modelName)->Behaviors->attached('Searchable')) {
         continue;
       }
+
       // Store model name in class property
       $this->_availableModelnames[] = $modelName;
     }
