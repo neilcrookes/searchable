@@ -28,6 +28,12 @@ class SearchIndexesController extends SearchableAppController {
     // Add default scope condition
     $this->paginate['SearchIndex']['conditions'] = array('SearchIndex.active' => 1);
 
+    // Add published condition NULL or < NOW()
+    $this->paginate['SearchIndex']['conditions']['OR'] = array(
+      array('SearchIndex.published' => null),
+      array('SearchIndex.published <= ' => date('Y-m-d H:i:s'))
+    );
+
     // Add type condition if not All
     if (isset($this->params['type'])
     && $this->params['type'] != 'All') {

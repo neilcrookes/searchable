@@ -12,6 +12,7 @@ class SearchableBehavior extends ModelBehavior {
     'scope' => array(),
     'name' => null,
     'summary' => null,
+    'published' => null,
     'url' => null,
   );
 
@@ -54,6 +55,10 @@ class SearchableBehavior extends ModelBehavior {
    * search result entry on the results page. If omitted, no field is used, and
    * the summary will be a series of excerpts from the Search Index data with
    * the search terms highlighted.
+   * - published - the field to be used from the Searchable model when
+   * populating the published field in the Search Index. This can be used in the
+   * conditions array when performing the search. If omitted, no field is used,
+   * and the published field contain NULL.
    * - url - array of url elements e.g. controller, action etc. If controller is
    * omitted, the controller version of the model is used. If action is omitted,
    * view is used, if there are no other non-url paramters (e.g. slug), the
@@ -201,6 +206,7 @@ class SearchableBehavior extends ModelBehavior {
       $this->_setScope($model, $created);
       $this->_setExtra($model, 'name');
       $this->_setExtra($model, 'summary');
+      $this->_setExtra($model, 'published');
       $this->_setUrl($model);
 
       $this->SearchIndex->save();
