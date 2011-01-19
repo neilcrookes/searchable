@@ -197,6 +197,14 @@ class SearchableBehavior extends ModelBehavior {
             // Merge data with default or existing data, and json_encode it ready for
             // saving the Search Index record.
             $this->SearchIndex->data['SearchIndex']['data'] = array_merge($this->SearchIndex->data['SearchIndex']['data'], $data);
+
+            // Hash the keys for search data in order to remove possible weighting of results
+            $new_data = array();
+            foreach ($this->SearchIndex->data['SearchIndex']['data'] as $key => $value) {
+                $new_data[sha1($key)] = $value;
+            }
+            $this->SearchIndex->data['SearchIndex']['data'] = $new_data;
+
             $this->SearchIndex->data['SearchIndex']['data'] = json_encode($this->SearchIndex->data['SearchIndex']['data']);
 
             $this->_setScope($model, $created);
