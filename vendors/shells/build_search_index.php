@@ -79,7 +79,11 @@ class BuildSearchIndexShell extends Shell {
             }
 
             // Find all records
-            $records = $ModelObj->find('all',array('recursive' => 0));
+            if (method_exists($ModelObj, 'getAllSearchableData')) {
+                $records = $ModelObj->getAllSearchableData();
+            } else {
+                $records = $ModelObj->find('all', array('recursive' => 0));
+            }
 
             foreach ($records as $record) {
                 // Set model->data property
