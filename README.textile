@@ -34,7 +34,7 @@ git submodule update
 _[GIT Clone]_
 
 In your plugin directory type
-<pre><code>git clone git://github.com/searchable/cake_admin.git searchable</code></pre>
+<pre><code>git clone git://github.com/josegonzalez/searchable.git searchable</code></pre>
 
 h2. Usage
 
