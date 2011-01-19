@@ -145,6 +145,11 @@ class BuildSearchIndexShell extends Shell {
                 continue;
             }
 
+            // Make sure the model extends Model
+            if (!is_subclass_of(ClassRegistry::init($modelName), 'Model')) {
+                continue;
+            }
+
             // If Searchable not attached, skip
             if (!ClassRegistry::init($modelName)->Behaviors->attached('Searchable')) {
                 continue;
