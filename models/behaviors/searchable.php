@@ -245,7 +245,7 @@ class SearchableBehavior extends ModelBehavior {
         }
 
         // Populate the Search Index data property with the value from model data
-        $this->SearchIndex->data['SearchIndex'][$field] = $this->_cleanValue($this->_modelData[$model->alias][$this->settings[$model->alias][$field]]);
+        $this->SearchIndex->data['SearchIndex'][$field] = $this->_cleanValue($model, $this->_modelData[$model->alias][$this->settings[$model->alias][$field]]);
     }
 
 /**
@@ -304,7 +304,6 @@ class SearchableBehavior extends ModelBehavior {
             // If the real value to include in the Search Index data field is actually
             // from an associated model, fetch that value
             if ($modelDataSource != $searchDataSource) {
-
                 list($searchDataAlias, $searchDataField) = explode('.', $searchDataSource);
 
                 // The value from the associated model may already be in model data
@@ -316,11 +315,8 @@ class SearchableBehavior extends ModelBehavior {
                     $AssocModel->id = $modelDataValue;
                     $value = $AssocModel->field($searchDataField);
                 }
-
             }
-
-            $data[$searchDataSource] = $this->_cleanValue($value);
-
+            $data[$searchDataSource] = $this->_cleanValue($model, $value);
         }
 
         return $data;
@@ -373,10 +369,15 @@ class SearchableBehavior extends ModelBehavior {
  * @param string $value
  * @return string
  */
-    protected function _cleanValue($value) {
-        $value = strip_tags($value);
-        $value = trim($value);
-        $value = html_entity_decode($value, ENT_COMPAT, 'UTF-8');
+    function _cleanValue(&$model, $value) {
+        if (method_exists($model, 'cleanValue')) {
+            $value = $model->cleanValue($value);
+        } else {
+            $value = strip_tags($value);
+            $value = trim($value);
+            $value = html_entity_decode($value, ENT_COMPAT, 'UTF-8');
+        }
+
         return $value;
     }
 
