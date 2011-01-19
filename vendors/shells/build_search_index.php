@@ -178,7 +178,7 @@ class BuildSearchIndexShell extends Shell {
     protected function _setDbConfig() {
         if (!empty($this->params['connection'])) {
             $this->_useDbConfig = $this->params['connection'];
-            return
+            return;
         } else {
             $configs = get_class_vars('DATABASE_CONFIG');
             $configs = array_keys($configs);
