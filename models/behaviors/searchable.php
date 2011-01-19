@@ -210,7 +210,7 @@ class SearchableBehavior extends ModelBehavior {
             $this->_setExtra($model, 'name');
             $this->_setExtra($model, 'summary');
             $this->_setExtra($model, 'published');
-            $this->_setUrl($model);
+            $this->_setUrl($model, $data);
 
             $this->SearchIndex->save();
         }
@@ -219,7 +219,7 @@ class SearchableBehavior extends ModelBehavior {
 /**
  * Enter description here...
  */
-    protected function _setUrl(&$model) {
+    protected function _setUrl(&$model, $data) {
         $url = $this->settings[$model->alias]['url'];
         $nonStandardUrlComponents = array_diff_key($url, array_flip(array('plugin', 'controller', 'action')));
 
@@ -228,7 +228,6 @@ class SearchableBehavior extends ModelBehavior {
         } else {
             foreach ($nonStandardUrlComponents as $modelName => $modelFields) {
                 foreach ($modelFields as $key => $value) {
-
                     if (isset($data["{$modelName}.{$value}"])) {
                         $value = $data["{$modelName}.{$value}"];
                     }
