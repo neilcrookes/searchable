@@ -1,4 +1,5 @@
 <?php
+App::import('Core', 'Sanitize');
 class SearchComponent extends Object {
 
     var $_controller = null;
@@ -37,11 +38,13 @@ class SearchComponent extends Object {
 
     function paginate($term = null, $paginateOptions = array()) {
         $this->_controller->paginate = array('SearchIndex' => array_merge(array(
+            'conditions' => array(
                 array('SearchIndex.active' => 1),
                 'or' => array(
                     array('SearchIndex.published' => null),
                     array('SearchIndex.published <= ' => date('Y-m-d H:i:s'))
                 )
+            )
         ), $paginateOptions));
 
         if (isset($this->_controller->params['type']) && $this->_controller->params['type'] != 'All') {
@@ -55,15 +58,20 @@ class SearchComponent extends Object {
         }
 
         if ($term) {
-            App::import('Core', 'Sanitize');
             $term = Sanitize::escape($term);
             $this->_controller->data['SearchIndex']['term'] = $term;
+
+            $term = implode(' ', array_map(array($this, 'replace'), preg_split('/[\s_]/', $term))) . '*';
             $this->_controller->paginate['SearchIndex']['conditions'][] = "MATCH(data) AGAINST('$term' IN BOOLEAN MODE)";
             $this->_controller->paginate['SearchIndex']['fields'] = "*, MATCH(data) AGAINST('$term' IN BOOLEAN MODE) AS score";
             $this->_controller->paginate['SearchIndex']['order'] = "score DESC";
         }
 
-        return $this->_controller->paginate();
+        return $this->_controller->paginate('SearchIndex');
+    }
+
+    function replace($v) {
+        return str_replace(array(' +-', ' +~', ' ++', ' +'), array('-', '~', '+', '+'), " +{$v}");
     }
 
 }

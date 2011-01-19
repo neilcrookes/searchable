@@ -7,7 +7,7 @@ class SearchIndexesController extends SearchableAppController {
 
     function index($term = null) {
         // Redirect with search data in the URL in pretty format
-        $this->Search->redirectUnlessGet()
+        $this->Search->redirectUnlessGet();
 
         // Get Pagination results
         $results = $this->Search->paginate($term);
