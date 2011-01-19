@@ -107,13 +107,21 @@ class BuildSearchIndexShell extends Shell {
  * Sets only or selected db config
  */
     protected function _setDbConfig() {
-        $configs = get_class_vars('DATABASE_CONFIG');
-        $configs = array_keys($configs);
-        // Prompt if multiple, which db config to use.
-        if (count($configs) > 1) {
-            $this->_useDbConfig = $this->in(__('Use Database Config', true) .':', $configs, 'default');
-        } else { // else use the only one
-            $this->_useDbConfig = current($configs);
+        if (!empty($this->params['connection'])) {
+            $this->_useDbConfig = $this->params['connection'];
+            return
+        } else {
+            $configs = get_class_vars('DATABASE_CONFIG');
+            $configs = array_keys($configs);
+            // Prompt if multiple, which db config to use.
+            if (count($configs) > 1) {
+                $this->_useDbConfig = $this->in(__('Use Database Config', true) .':', $configs, 'default');
+            } else { // else use the only one
+                $this->_useDbConfig = current($configs);
+            }
+        }
+        if (empty($this->_useDbConfig)) {
+            $this->_useDbConfig = 'default';
         }
     }
 
