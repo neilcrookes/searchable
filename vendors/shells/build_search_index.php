@@ -31,6 +31,21 @@ class BuildSearchIndexShell extends Shell {
     protected $_availableModelnames = array();
 
 /**
+ * undocumented class variable
+ *
+ * @var string
+ **/
+    public $interactive = true;
+
+/**
+ * undocumented class variable
+ *
+ * @var string
+ **/
+    public $quiet = false;
+
+
+/**
  * The main function, executed automatically when running the shell
  *
  */
@@ -53,20 +68,33 @@ class BuildSearchIndexShell extends Shell {
             $modelNames = $this->_determineModelnames(implode(' ', $this->args));
         }
 
+        // Turn off interactivity where necessary
+        if (isset($this->params['interactive']) && $this->params['interactive'] !== "true") {
+            $this->interactive = false;
+        }
+
+        // Turn off output where necessary
+        if (isset($this->params['quiet']) && $this->params['quiet'] == "true") {
+            $this->quiet = true;
+        }
+
+
         foreach ($modelNames as $modelName) {
-            // Confirm rebuild index for this model
-            $skip = $this->in(__("Are you sure you want to rebuild the search index for $modelName, 'y' or 'n' or 'q' to exit", true), null, 'n');
+            if ($this->interactive) {
+                // Confirm rebuild index for this model
+                $skip = $this->in(__("Are you sure you want to rebuild the search index for $modelName, 'y' or 'n' or 'q' to exit", true), null, 'n');
 
-            // Quit if they want to
-            if (strtolower($skip) === 'q') {
-                $this->out(__("Exit", true));
-                $this->_stop();
-            }
+                // Quit if they want to
+                if (strtolower($skip) === 'q') {
+                    $this->out(__("Exit", true));
+                    $this->_stop();
+                }
 
-            // Skip if they want to
-            if (strtolower($skip) !== 'y') {
-                $this->out(__("Skipping " . $modelName, true));
-                continue;
+                // Skip if they want to
+                if (strtolower($skip) !== 'y') {
+                    $this->out(__("Skipping " . $modelName, true));
+                    continue;
+                }
             }
 
             // Instantiate the model object
@@ -101,6 +129,47 @@ class BuildSearchIndexShell extends Shell {
         }
 
         $this->hr();
+    }
+
+/**
+ * Outputs a single or multiple messages to stdout. If no parameters
+ * are passed outputs just a newline.
+ *
+ * @param mixed $message A string or a an array of strings to output
+ * @param integer $newlines Number of newlines to append
+ * @return integer Returns the number of bytes returned from writing to stdout.
+ * @access public
+ */
+    function out($message = null, $newlines = 1) {
+        if (!$this->quiet) {
+            return parent::out($message, $newlines);
+        }
+    }
+
+/**
+ * Outputs a single or multiple error messages to stderr. If no parameters
+ * are passed outputs just a newline.
+ *
+ * @param mixed $message A string or a an array of strings to output
+ * @param integer $newlines Number of newlines to append
+ * @access public
+ */
+    function err($message = null, $newlines = 1) {
+        if (!$this->quiet) {
+            return parent::err($message, $newlines);
+        }
+    }
+
+/**
+ * Outputs a series of minus characters to the standard output, acts as a visual separator.
+ *
+ * @param integer $newlines Number of newlines to pre- and append
+ * @access public
+ */
+	function hr($newlines = 0) {
+        if (!$this->quiet) {
+            return parent::hr($newlines);
+        }
     }
 
 /**
