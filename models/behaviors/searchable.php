@@ -13,6 +13,7 @@ class SearchableBehavior extends ModelBehavior {
         'summary' => null,
         'published' => null,
         'url' => null,
+        'allowNumericKeys' => false,
     );
 
 /**
@@ -96,8 +97,7 @@ class SearchableBehavior extends ModelBehavior {
         }
 
         // Set 'name' to false if you don't want to populate the 'name' field
-        if (!isset($this->settings[$model->alias]['name'])
-        || $this->settings[$model->alias]['name'] !== false) {
+        if (!isset($this->settings[$model->alias]['name']) || $this->settings[$model->alias]['name'] !== false) {
             $this->settings[$model->alias]['name'] = $model->displayField;
         }
 
@@ -118,7 +118,6 @@ class SearchableBehavior extends ModelBehavior {
         if (!isset($this->settings[$model->alias]['url']['action'])) {
             $this->settings[$model->alias]['url']['action'] = 'view';
         }
-
     }
 
 /**
@@ -222,14 +221,29 @@ class SearchableBehavior extends ModelBehavior {
  */
     protected function _setUrl(&$model) {
         $url = $this->settings[$model->alias]['url'];
-
         $nonStandardUrlComponents = array_diff_key($url, array_flip(array('plugin', 'controller', 'action')));
 
         if (empty($nonStandardUrlComponents)) {
             $url[] = $this->_foreignKey;
-            $this->SearchIndex->data['SearchIndex']['url'] = json_encode($url);
-            return;
+        } else {
+            foreach ($nonStandardUrlComponents as $modelName => $modelFields) {
+                foreach ($modelFields as $key => $value) {
+
+                    if (isset($data["{$modelName}.{$value}"])) {
+                        $value = $data["{$modelName}.{$value}"];
+                    }
+
+                    if (!is_numeric($key) || $this->settings[$model->alias]['allowNumericKeys']) {
+                        $url[$key] = $value;
+                    } else {
+                        $url[] = $value;
+                    }
+                }
+                unset($url[$modelName]);
+            }
         }
+
+        $this->SearchIndex->data['SearchIndex']['url'] = json_encode($url);
     }
 
 /**
