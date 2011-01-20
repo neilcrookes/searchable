@@ -84,7 +84,9 @@ class SearchComponent extends Object {
                 $this->_controller->paginate['SearchIndex']['conditions'][] = "MATCH(data) AGAINST('$term' IN BOOLEAN MODE)";
             }
             $this->_controller->paginate['SearchIndex']['fields'] = "*, MATCH(data) AGAINST('$term' IN BOOLEAN MODE) AS score";
-            $this->_controller->paginate['SearchIndex']['order'] = "score DESC";
+            if (empty($this->_controller->paginate['SearchIndex']['order'])) {
+                $this->_controller->paginate['SearchIndex']['order'] = "score DESC";
+            }
         }
 
         return $this->_controller->paginate('SearchIndex');
