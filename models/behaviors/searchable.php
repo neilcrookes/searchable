@@ -28,60 +28,62 @@ class SearchableBehavior extends ModelBehavior {
 /**
  * Initiate SearchableBehavior
  *
+ * ### Options:
+ *
+ * - `fields`   array of fields from the model to include in the search index.
+ *              If omitted, all char, varchar, string, text fields will be included.
+ *              To include data from fields in the current model, just specify the field
+ *              name. E.g. array('title')
+ *
+ *              The Searchable Behavior can include data from associated models in the
+ *              Search Index too. This is useful for say Post belongsTo Category, and you
+ *              want the Category name included in the Search Index.
+ *              To achieve this, specify the field name in the current model as the key and
+ *              the model and field in the associated model as the value. E.g.
+ *              array('category_id' => 'Category.name')
+ * - `scope`    array of conditions in the form array('field' => 'value') to
+ *              apply to determine whether the record in the Search Index is active or not,
+ *              and therefore whether it should be included in the search results. If
+ *              omitted, the record in the Search Index is always active.
+ * - `name`     the field to be used from the Searchable model when populating the
+ *              name field in the Search Index. This is used as the title of a search
+ *              result entry on the results page, and has the link to view the result on
+ *              it. If omitted, the displayField of the model is used. Set to false if you
+ *              don't want the title field to be populated.
+ * - `summary`  the field to be used from the Searchable model when populating
+ *              the summary field in the Search Index. This is used as the summary of a
+ *              search result entry on the results page. If omitted, no field is used, and
+ *              the summary will be a series of excerpts from the Search Index data with
+ *              the search terms highlighted.
+ * - `published`the field to be used from the Searchable model when
+ *              populating the published field in the Search Index. This can be used in the
+ *              conditions array when performing the search. If omitted, no field is used,
+ *              and the published field contain NULL.
+ * - `url`      array of url elements e.g. controller, action etc. If controller is
+ *              omitted, the controller version of the model is used. If action is omitted,
+ *              view is used, if there are no other non-url paramters (e.g. slug), the
+ *              Searchable Model primary key value is added to the url.
  * @param AppModel $model
- * @param array $config Array of options for configuring the Searchable
- * Behavior settings for the given model. Keys include:
- * - fields - array of fields from the model to include in the search index.
- * If omitted, all char, varchar, string, text fields will be included.
- * To include data from fields in the current model, just specify the field
- * name. E.g. array('title')
- * The Searchable Behavior can include data from associated models in the
- * Search Index too. This is useful for say Post belongsTo Category, and you
- * want the Category name included in the Search Index.
- * To achieve this, specify the field name in the current model as the key and
- * the model and field in the associated model as the value. E.g.
- * array('category_id' => 'Category.name')
- * - scope - array of conditions in the form array('field' => 'value') to
- * apply to determine whether the record in the Search Index is active or not,
- * and therefore whether it should be included in the search results. If
- * omitted, the record in the Search Index is always active.
- * - name - the field to be used from the Searchable model when populating the
- * name field in the Search Index. This is used as the title of a search
- * result entry on the results page, and has the link to view the result on
- * it. If omitted, the displayField of the model is used. Set to false if you
- * don't want the title field to be populated.
- * - summary - the field to be used from the Searchable model when populating
- * the summary field in the Search Index. This is used as the summary of a
- * search result entry on the results page. If omitted, no field is used, and
- * the summary will be a series of excerpts from the Search Index data with
- * the search terms highlighted.
- * - published - the field to be used from the Searchable model when
- * populating the published field in the Search Index. This can be used in the
- * conditions array when performing the search. If omitted, no field is used,
- * and the published field contain NULL.
- * - url - array of url elements e.g. controller, action etc. If controller is
- * omitted, the controller version of the model is used. If action is omitted,
- * view is used, if there are no other non-url paramters (e.g. slug), the
- * Searchable Model primary key value is added to the url.
+ * @param array $config array of configuration settings.
+ * @return void
+ * @access public
  */
     function setup(&$model, $config = array()) {
-        if (!is_array($config)) {
-            $config = array($config);
-        }
-
         // Add config to settings for given model
-        $this->settings[$model->alias] = array_merge($this->_defaults, $config);
+        $this->settings[$model->alias] = array_merge($this->_defaults, (array)$config);
 
         // Normalize the fields property using default string types from the model
         // schema if not specified, or processing the fields config param passed in.
         if (empty($this->settings[$model->alias]['fields'])) {
             foreach ($model->schema() as $field => $info) {
-                if (in_array($info['type'], array('text','varchar','char','string','date'))) {
+                if (in_array($info['type'], array('text', 'varchar', 'char', 'string', 'date'))) {
                     $this->settings[$model->alias]['fields'][$model->alias.'.'.$field] = $model->alias.'.'.$field;
                 }
             }
         } else {
             // Ensure fields is in the format array(Model.field => Model.field, ...)
+            $this->settings[$model->alias]['fields'] = (array)$this->settings[$model->alias]['fields'];
+
             foreach ($this->settings[$model->alias]['fields'] as $field => $modelField) {
                 unset($this->settings[$model->alias]['fields'][$field]);
                 if (strpos($modelField, '.') === false) {
@@ -97,7 +99,7 @@ class SearchableBehavior extends ModelBehavior {
         }
 
         // Set 'name' to false if you don't want to populate the 'name' field
-        if (!isset($this->settings[$model->alias]['name']) || $this->settings[$model->alias]['name'] !== false) {
+        if (!isset($this->settings[$model->alias]['name'])) {
             $this->settings[$model->alias]['name'] = $model->displayField;
         }
 
@@ -200,7 +202,11 @@ class SearchableBehavior extends ModelBehavior {
             // Hash the keys for search data in order to remove possible weighting of results
             $new_data = array();
             foreach ($this->SearchIndex->data['SearchIndex']['data'] as $key => $value) {
-                $new_data[sha1($key)] = $value;
+                if (preg_match('/\b[0-9a-f]{20,40}\b/', $key)) {
+                    $new_data[$key] = $value;
+                } else {
+                    $new_data[sha1($key)] = $value;
+                }
             }
             $this->SearchIndex->data['SearchIndex']['data'] = $new_data;
 
@@ -214,6 +220,8 @@ class SearchableBehavior extends ModelBehavior {
 
             $this->SearchIndex->save();
         }
+
+        $this->_records = array();
     }
 
 /**
@@ -255,6 +263,7 @@ class SearchableBehavior extends ModelBehavior {
     protected function _setExtra(&$model, $field) {
         // If the current model is configured to have this field, just go back
         if (!$this->settings[$model->alias][$field]) {
+            $this->SearchIndex->data['SearchIndex'][$field] = null;
             return;
         }
 
