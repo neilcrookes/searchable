@@ -14,7 +14,16 @@ class SearchableBehavior extends ModelBehavior {
         'published' => null,
         'url' => null,
         'allowNumericKeys' => false,
+        'types' => array('text', 'varchar', 'char', 'string', 'date'),
+        'extra' => array(),
     );
+
+/**
+ * Default fields
+ *
+ * @var string
+ */
+    protected $_fields = array('name', 'summary', 'published');
 
 /**
  * Records being saved or deleted that the Searchable Behavior transfers to
@@ -76,7 +85,7 @@ class SearchableBehavior extends ModelBehavior {
         // schema if not specified, or processing the fields config param passed in.
         if (empty($this->settings[$model->alias]['fields'])) {
             foreach ($model->schema() as $field => $info) {
-                if (in_array($info['type'], array('text', 'varchar', 'char', 'string', 'date'))) {
+                if (in_array($info['type'], $this->settings[$model->alias]['types'])) {
                     $this->settings[$model->alias]['fields'][$model->alias.'.'.$field] = $model->alias.'.'.$field;
                 }
             }
@@ -102,6 +111,9 @@ class SearchableBehavior extends ModelBehavior {
         if (!isset($this->settings[$model->alias]['name'])) {
             $this->settings[$model->alias]['name'] = $model->displayField;
         }
+
+        // If 'extra' is not an array, make it one
+        $this->settings[$model->alias]['extra'] = (array)$this->settings[$model->alias]['extra'];
 
         // If url is not an array, make it one
         if (!isset($this->settings[$model->alias]['url'])) {
@@ -198,25 +210,26 @@ class SearchableBehavior extends ModelBehavior {
             // Merge data with default or existing data, and json_encode it ready for
             // saving the Search Index record.
             $this->SearchIndex->data['SearchIndex']['data'] = array_merge($this->SearchIndex->data['SearchIndex']['data'], $data);
-
-            // Hash the keys for search data in order to remove possible weighting of results
-            $new_data = array();
-            foreach ($this->SearchIndex->data['SearchIndex']['data'] as $key => $value) {
-                if (preg_match('/\b[0-9a-f]{20,40}\b/', $key)) {
-                    $new_data[$key] = $value;
-                } else {
-                    $new_data[sha1($key)] = $value;
-                }
-            }
-            $this->SearchIndex->data['SearchIndex']['data'] = $new_data;
-
-            $this->SearchIndex->data['SearchIndex']['data'] = json_encode($this->SearchIndex->data['SearchIndex']['data']);
-
             $this->_setScope($model, $created);
             $this->_setExtra($model, 'name');
             $this->_setExtra($model, 'summary');
             $this->_setExtra($model, 'published');
             $this->_setUrl($model, $data);
+
+            foreach ($this->settings[$model->alias]['extra'] as $field) {
+                $this->_setExtra($model, $field);
+            }
+
+            // Hash the keys for search data in order to remove possible weighting of results
+            $newData = array();
+            foreach ($this->SearchIndex->data['SearchIndex']['data'] as $key => $value) {
+                if (preg_match('/\b[0-9a-f]{20,40}\b/', $key)) {
+                    $newData[$key] = $value;
+                } else {
+                    $newData[sha1($key)] = $value;
+                }
+            }
+            $this->SearchIndex->data['SearchIndex']['data'] = json_encode($newData);
 
             $this->SearchIndex->save();
         }
@@ -261,9 +274,27 @@ class SearchableBehavior extends ModelBehavior {
  * @param string $field
  */
     protected function _setExtra(&$model, $field) {
-        // If the current model is configured to have this field, just go back
+        // If the current model is not configured to have this field, do extra checks
         if (!$this->settings[$model->alias][$field]) {
-            $this->SearchIndex->data['SearchIndex'][$field] = null;
+            if (in_array($field, $this->_fields)) {
+                // If in the default fields, return null,
+                $this->SearchIndex->data['SearchIndex'][$field] = null;
+            } else {
+                // else, iterate over available fields till it is found
+                foreach ($this->_modelData as $modelName => $fieldValues) {
+                    if (isset($this->_modelData[$modelName][$field])) {
+                        $this->SearchIndex->data['SearchIndex'][$field] = $this->_cleanValue($this->_modelData[$modelName][$field]);
+                        return;
+                    }
+                }
+                // else, iterate over set data till it is found
+                foreach ($this->SearchIndex->data['SearchIndex']['data'] as $modelField => $value) {
+                    if (isset($modelField[$modelName . '.' . $field])) {
+                        $this->SearchIndex->data['SearchIndex'][$field] = $this->_cleanValue($value);
+                        return;
+                    }
+                }
+            }
             return;
         }
 
