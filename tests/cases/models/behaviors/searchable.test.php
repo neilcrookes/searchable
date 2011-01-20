@@ -19,12 +19,26 @@ class Article extends CakeTestModel {
  */
 class ArticleTwo extends Article {
 
+/**
+ * Trigger for getSearchableData
+ *
+ * @var array
+ */
+    var $searchable = false;
+
     function getSearchableData($data = array()) {
+        if ($this->searchable) {
+            return array(
+                'Post.title' => 'Post Title',
+                'Post.body' => 'Post Body',
+                'Category.name' => 'First Category',
+            );
+        }
         return array();
     }
 
     function cleanValue($value) {
-        return 'lol';
+        return '<clean>' . $value . '</clean>';
     }
 
 }
@@ -379,16 +393,23 @@ class SearchablebehaviorTestCase extends CakeTestCase {
 
         $result = $this->SearchIndex->field('data', array(
             'foreign_key' => 1,
-            'model' => 'ArticleTwo'
-        ));
-        $this->assertEqual('[]', $result);
-        $result = $this->SearchIndex->field('data', array(
-            'foreign_key' => 1,
             'model' => 'Article'
         ));
         $this->assertEqual('{"8f2bc0d4fec30a58981b5594054de3ffbd92078d":"First Article","bbf72108d87cf36a9d1112add1ef00031082688a":"First Article","a35eb6d57a708e3ae98439e62894de478cf744e6":"first_article"}', $result);
-    }
+        $result = $this->SearchIndex->field('data', array(
+            'foreign_key' => 1,
+            'model' => 'ArticleTwo'
+        ));
+        $this->assertEqual('[]', $result);
 
+        $this->ArticleTwo->searchable = true;
+        $this->ArticleTwo->save($articleTwo);
+        $result = $this->SearchIndex->field('data', array(
+            'foreign_key' => 1,
+            'model' => 'ArticleTwo'
+        ));
+        $this->assertEqual('{"5e403b654f08c66ea5a0f9fd04d2c49ef21963d3":"Post Title","0d3faf2f0a2e36bdcf532a4321cf703d59e0709e":"Post Body","d1196d2b1eeb5cff825619e836b18507d1df3cb3":"First Category"}', $result);
+    }
 
     function testCleanValue() {
         $this->ArticleTwo->Behaviors->attach('Searchable.Searchable');
@@ -400,7 +421,7 @@ class SearchablebehaviorTestCase extends CakeTestCase {
             'foreign_key' => 1,
             'model' => 'ArticleTwo'
         ));
-        $this->assertEqual('lol', $result);
+        $this->assertEqual('<clean>First Article</clean>', $result);
     }
 
 
@@ -459,6 +480,35 @@ class SearchablebehaviorTestCase extends CakeTestCase {
         ));
         $this->assertEqual('{"e49b09a6dbc60db73f5f12292459abf164452300":"Second Category"}', $result);
 
+        $this->ArticleTwo->Behaviors->attach('Searchable.Searchable', array(
+            'fields' => array(
+                'category_id' => 'Category.title',
+            ),
+            'extra' => 'slug'
+        ));
+        $article = $this->ArticleTwo->findById(1);
+
+        $this->ArticleTwo->save($article);
+        $result = $this->SearchIndex->field('data', array(
+            'foreign_key' => 1,
+            'model' => 'ArticleTwo'
+        ));
+        $this->assertEqual('[]', $result);
+
+        $article['Category']['title'] = 'Second Category';
+        $this->ArticleTwo->searchable = true;
+        $this->ArticleTwo->save($article);
+        $result = $this->SearchIndex->field('data', array(
+            'foreign_key' => 1,
+            'model' => 'ArticleTwo'
+        ));
+        $this->assertEqual('{"5e403b654f08c66ea5a0f9fd04d2c49ef21963d3":"Post Title","0d3faf2f0a2e36bdcf532a4321cf703d59e0709e":"Post Body","d1196d2b1eeb5cff825619e836b18507d1df3cb3":"First Category"}', $result);
+
+        $result = $this->SearchIndex->field('slug', array(
+            'foreign_key' => 1,
+            'model' => 'ArticleTwo'
+        ));
+        $this->assertEqual('<clean>first_article</clean>', $result);
     }
 
 }

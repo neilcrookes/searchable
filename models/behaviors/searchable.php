@@ -275,7 +275,7 @@ class SearchableBehavior extends ModelBehavior {
  */
     protected function _setExtra(&$model, $field) {
         // If the current model is not configured to have this field, do extra checks
-        if (!$this->settings[$model->alias][$field]) {
+        if (!isset($this->settings[$model->alias][$field]) || !$this->settings[$model->alias][$field]) {
             if (in_array($field, $this->_fields)) {
                 // If in the default fields, return null,
                 $this->SearchIndex->data['SearchIndex'][$field] = null;
@@ -283,14 +283,14 @@ class SearchableBehavior extends ModelBehavior {
                 // else, iterate over available fields till it is found
                 foreach ($this->_modelData as $modelName => $fieldValues) {
                     if (isset($this->_modelData[$modelName][$field])) {
-                        $this->SearchIndex->data['SearchIndex'][$field] = $this->_cleanValue($this->_modelData[$modelName][$field]);
+                        $this->SearchIndex->data['SearchIndex'][$field] = $this->_cleanValue($model, $this->_modelData[$modelName][$field]);
                         return;
                     }
                 }
                 // else, iterate over set data till it is found
                 foreach ($this->SearchIndex->data['SearchIndex']['data'] as $modelField => $value) {
                     if (isset($modelField[$modelName . '.' . $field])) {
-                        $this->SearchIndex->data['SearchIndex'][$field] = $this->_cleanValue($value);
+                        $this->SearchIndex->data['SearchIndex'][$field] = $this->_cleanValue($model, $value);
                         return;
                     }
                 }
