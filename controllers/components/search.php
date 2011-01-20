@@ -2,7 +2,19 @@
 App::import('Core', 'Sanitize');
 class SearchComponent extends Object {
 
+/**
+ * Reference to current controller
+ *
+ * @var string
+ */
     var $_controller = null;
+
+/**
+ * Append Like Query to pagination?
+ *
+ * @var string
+ */
+    var $like = false;
 
     function initialize(&$controller, $settings = array()) {
         $this->_controller = $controller;
@@ -37,7 +49,7 @@ class SearchComponent extends Object {
     }
 
     function paginate($term = null, $paginateOptions = array()) {
-        $this->_controller->paginate = array('SearchIndex' => array_merge(array(
+        $this->_controller->paginate = array('SearchIndex' => array_merge_recursive(array(
             'conditions' => array(
                 array('SearchIndex.active' => 1),
                 'or' => array(
@@ -62,7 +74,15 @@ class SearchComponent extends Object {
             $this->_controller->data['SearchIndex']['term'] = $term;
 
             $term = implode(' ', array_map(array($this, 'replace'), preg_split('/[\s_]/', $term))) . '*';
-            $this->_controller->paginate['SearchIndex']['conditions'][] = "MATCH(data) AGAINST('$term' IN BOOLEAN MODE)";
+
+            if ($this->like) {
+                $this->_controller->paginate['SearchIndex']['conditions'][] = array('or' => array(
+                        "MATCH(data) AGAINST('$term')",
+                        'SearchIndex.data LIKE' => "%{$this->_controller->data['SearchIndex']['term']}%"
+                ));
+            } else {
+                $this->_controller->paginate['SearchIndex']['conditions'][] = "MATCH(data) AGAINST('$term' IN BOOLEAN MODE)";
+            }
             $this->_controller->paginate['SearchIndex']['fields'] = "*, MATCH(data) AGAINST('$term' IN BOOLEAN MODE) AS score";
             $this->_controller->paginate['SearchIndex']['order'] = "score DESC";
         }
