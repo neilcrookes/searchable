@@ -216,8 +216,8 @@ class SearchableBehavior extends ModelBehavior {
             $this->_setExtra($model, 'published');
             $this->_setUrl($model, $data);
 
-            foreach ($this->settings[$model->alias]['extra'] as $field) {
-                $this->_setExtra($model, $field);
+            foreach ($this->settings[$model->alias]['extra'] as $key => $field) {
+                $this->_setExtra($model, $field, $key);
             }
 
             // Hash the keys for search data in order to remove possible weighting of results
@@ -273,24 +273,26 @@ class SearchableBehavior extends ModelBehavior {
  * @param AppModel $model
  * @param string $field
  */
-    protected function _setExtra(&$model, $field) {
+    protected function _setExtra(&$model, $field, $key = null) {
+        if (!$key || is_int($key)) $key = $field;
+
         // If the current model is not configured to have this field, do extra checks
         if (!isset($this->settings[$model->alias][$field]) || !$this->settings[$model->alias][$field]) {
             if (in_array($field, $this->_fields)) {
                 // If in the default fields, return null,
-                $this->SearchIndex->data['SearchIndex'][$field] = null;
+                $this->SearchIndex->data['SearchIndex'][$key] = null;
             } else {
                 // else, iterate over available fields till it is found
                 foreach ($this->_modelData as $modelName => $fieldValues) {
                     if (isset($this->_modelData[$modelName][$field])) {
-                        $this->SearchIndex->data['SearchIndex'][$field] = $this->_cleanValue($model, $this->_modelData[$modelName][$field]);
+                        $this->SearchIndex->data['SearchIndex'][$key] = $this->_cleanValue($model, $this->_modelData[$modelName][$field]);
                         return;
                     }
                 }
                 // else, iterate over set data till it is found
                 foreach ($this->SearchIndex->data['SearchIndex']['data'] as $modelField => $value) {
                     if (isset($modelField[$modelName . '.' . $field])) {
-                        $this->SearchIndex->data['SearchIndex'][$field] = $this->_cleanValue($model, $value);
+                        $this->SearchIndex->data['SearchIndex'][$key] = $this->_cleanValue($model, $value);
                         return;
                     }
                 }
@@ -306,7 +308,7 @@ class SearchableBehavior extends ModelBehavior {
         }
 
         // Populate the Search Index data property with the value from model data
-        $this->SearchIndex->data['SearchIndex'][$field] = $this->_cleanValue($model, $this->_modelData[$model->alias][$this->settings[$model->alias][$field]]);
+        $this->SearchIndex->data['SearchIndex'][$key] = $this->_cleanValue($model, $this->_modelData[$model->alias][$this->settings[$model->alias][$field]]);
     }
 
 /**
