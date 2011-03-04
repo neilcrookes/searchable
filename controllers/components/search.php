@@ -26,7 +26,7 @@ class SearchComponent extends Object {
             $redirect = array(
                 'plugin' => $this->_controller->params['plugin'],
                 'controller' => $this->_controller->params['controller'],
-                'action' => $this->_controller->params['index'],
+                'action' => $this->_controller->params['action'],
                 'type' => 'All',
             );
             if (!empty($this->_controller->data['SearchIndex']['type'])) {
