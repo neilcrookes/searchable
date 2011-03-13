@@ -228,6 +228,14 @@ class BuildSearchIndexShell extends Shell {
                 continue;
             }
 
+            // Skip abstract classes
+            try {
+                $testClass = new ReflectionClass($modelName);
+                if ($testClass->isAbstract()) {
+                    continue;
+                }
+            } catch (Exception $e) {}
+
             // Make sure the model extends Model
             if (!is_subclass_of(ClassRegistry::init($modelName), 'Model')) {
                 continue;
