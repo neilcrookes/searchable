@@ -28,7 +28,7 @@ class SearchIndex extends SearchableAppModel {
                     array('SearchIndex.published <= ' => date('Y-m-d H:i:s'))
                 )
             );
-            
+
             if (!empty($query['type'])) {
                 $query['conditions']['model'] = $query['type'];
             }
@@ -42,13 +42,31 @@ class SearchIndex extends SearchableAppModel {
             } else {
                 $query['conditions'][] = "MATCH(data) AGAINST('{$query['term']}' IN BOOLEAN MODE)";
             }
-            
-            $query['fields'] = "SearchIndex.foreign_key as id, SearchIndex.name, SearchIndex.summary, MATCH(data) AGAINST('{$query['term']}' IN BOOLEAN MODE) AS score";
+
+            if (empty($query['fields'])) {
+                $query['fields'] = array(
+                    'foreign_key as id',
+                    'name',
+                    'summary',
+                    "MATCH(data) AGAINST('{$query['term']}' IN BOOLEAN MODE) AS score"
+                );
+            } else {
+                $query['fields'][] = "MATCH(data) AGAINST('{$query['term']}' IN BOOLEAN MODE) AS score";
+            }
+
             if (empty($query['order'])) {
                 $query['order'] = "score DESC";
             }
             return $query;
         } else if ($state == 'after') {
+            if (empty($results)) {
+                return false;
+            }
+
+            if (empty($query['reindex'])) {
+                return $results;
+            }
+
             foreach ($results as &$result) {
                 $result = $result['SearchIndex'];
             }
