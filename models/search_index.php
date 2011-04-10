@@ -3,7 +3,7 @@ class SearchIndex extends SearchableAppModel {
     var $name = 'SearchIndex';
     var $useTable = 'search_index';
     var $_findMethods = array(
-        'types' => true
+        'search' => true, 'types' => true
     );
 
 /**
@@ -18,6 +18,43 @@ class SearchIndex extends SearchableAppModel {
         }
          return $this->find('types');
      }
+
+    function _findSearch($state, $query, $results = array()) {
+        if ($state == 'before') {
+            $query['conditions'] = array(
+                array('SearchIndex.active' => 1),
+                'or' => array(
+                    array('SearchIndex.published' => null),
+                    array('SearchIndex.published <= ' => date('Y-m-d H:i:s'))
+                )
+            );
+            
+            if (!empty($query['type'])) {
+                $query['conditions']['model'] = $query['type'];
+            }
+
+            $term = implode(' ', array_map(array($this, 'replace'), preg_split('/[\s_]/', $query['term']))) . '*';
+            if (!empty($query['like'])) {
+                $query['conditions'][] = array('or' => array(
+                        "MATCH(data) AGAINST('$term')",
+                        'SearchIndex.data LIKE' => "%{$query['term']}%"
+                ));
+            } else {
+                $query['conditions'][] = "MATCH(data) AGAINST('{$query['term']}' IN BOOLEAN MODE)";
+            }
+            
+            $query['fields'] = "SearchIndex.foreign_key as id, SearchIndex.name, SearchIndex.summary, MATCH(data) AGAINST('{$query['term']}' IN BOOLEAN MODE) AS score";
+            if (empty($query['order'])) {
+                $query['order'] = "score DESC";
+            }
+            return $query;
+        } else if ($state == 'after') {
+            foreach ($results as &$result) {
+                $result = $result['SearchIndex'];
+            }
+            return $results;
+        }
+    }
 
     function _findTypes($state, $query, $results = array()) {
         if ($state == 'before') {
@@ -39,6 +76,10 @@ class SearchIndex extends SearchableAppModel {
             }
             return $types;
         }
+    }
+
+    function replace($v) {
+        return str_replace(array(' +-', ' +~', ' ++', ' +'), array('-', '~', '+', '+'), " +{$v}");
     }
 
 }
