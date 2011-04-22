@@ -1,0 +1,8 @@
+Package: searchable
+Source: git://github.com/neilcrookes/searchable.git
+Type: plugin
+Section: search
+Description: CakePHP plugin for site search functionality
+Pre-depends: CakePHP==1.3
+Homepage: http://github.com/neilcrookes/searchable
+Bugs: http://github.com/neilcrookes/searchable/issues
