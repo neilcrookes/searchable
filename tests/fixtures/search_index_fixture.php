@@ -4,9 +4,9 @@ class SearchIndexFixture extends CakeTestFixture {
     var $table = 'search_index';
 
     var $fields = array(
-        'id' => array('type' => 'integer', 'null' => false, 'default' => NULL, 'key' => 'primary'),
+        'id' => array('type' => 'string', 'length' => 36, 'null' => false, 'default' => NULL, 'key' => 'primary'),
         'model' => array('type' => 'string', 'null' => false, 'default' => NULL, 'key' => 'index', 'collate' => 'latin1_swedish_ci', 'charset' => 'latin1'),
-        'foreign_key' => array('type' => 'integer', 'null' => false, 'default' => NULL),
+        'foreign_key' => array('type' => 'string', 'length' => 36, 'null' => false, 'default' => NULL),
         'data' => array('type' => 'text', 'null' => false, 'default' => NULL, 'key' => 'index', 'collate' => 'latin1_swedish_ci', 'charset' => 'latin1'),
         'name' => array('type' => 'string', 'null' => true, 'default' => NULL, 'collate' => 'latin1_swedish_ci', 'charset' => 'latin1'),
         'slug' => array('type' => 'string', 'null' => true, 'default' => NULL, 'collate' => 'latin1_swedish_ci', 'charset' => 'latin1'),
