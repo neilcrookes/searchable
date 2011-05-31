@@ -54,6 +54,9 @@ Now type something in the search box and go.
 
 h2. Usage Queryable Behavior
 
+This Behavior is there to decouple indexing from querying. If you both want to query and index the Model directly, just attach both Searchable and Queryable Behaviors to the Model.
+Otherwise you can still use the SearchIndex Model to do queries on the search index directly.
+
 # Attach the Queryable Behavior to the models in your app that you want to search (with default settings):
 <pre><code>
 var $actsAs = array(
