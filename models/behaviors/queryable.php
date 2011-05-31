@@ -76,6 +76,32 @@ class QueryableBehavior extends ModelBehavior {
 				}
 			}
 
+			if ($Model->Behaviors->attached('Containable')) {
+				if (!empty($query['contain'])) {
+					$pk = $Model->{$searchmodel}->primaryKey;
+					$requiredFields = array(
+						"$searchmodel.$pk", "$searchmodel.{$this->getSetting($Model, 'foreignKey')}",
+						"$searchmodel.{$this->getSetting($Model, 'searchField')}",
+						"$searchmodel.{$this->getSetting($Model, 'modelIdentifier')}"
+					);
+					
+					if (!empty($query['contain'][$searchmodel])) {
+						if (!empty($query['contain'][$searchmodel]['fields'])) {
+							$query['contain'][$searchmodel]['fields'] = array_merge(
+								$query['contain'][$searchmodel]['fields'],
+								$requiredFields
+							);
+						} else {
+							$query['contain'][$searchmodel]['fields'] = $requiredFields;
+						}
+					} else {
+						if (!in_array($searchmodel, array_values($query['contain']))) {
+							$query['contain'][] = $searchmodel;
+						}
+					}
+				}
+			}
+
 			$term = implode(' ', array_map(array($this, '_replace'), preg_split('/[\s_]/', $query['term']))) . '*';
 			unset($query['term']);
 
@@ -83,7 +109,6 @@ class QueryableBehavior extends ModelBehavior {
 			$match .= "AGAINST('{$term}' IN BOOLEAN MODE)";
 
 			$query['conditions'][] = array("$match >" => 0);
-
 			$query['group'][] = "{$Model->alias}.{$Model->primaryKey}";
 		}
 		return $query;
