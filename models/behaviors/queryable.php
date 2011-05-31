@@ -17,14 +17,6 @@ class QueryableBehavior extends ModelBehavior {
  * @access protected
  */
 	protected $_recursive = array();
-
-/**
- * Holds the nessecary conditions for the hasOne binding
- * 
- * @var Array
- * @access protected
- */
-	protected $_conditions = array();
 	
 /**
  * Behavior setup - Constructor
