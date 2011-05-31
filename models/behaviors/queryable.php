@@ -13,10 +13,18 @@ class QueryableBehavior extends ModelBehavior {
 /**
  * Saves the binding state and tells the Behavior to unbind
  * 
- * @var bool
+ * @var array
  * @access protected
  */
 	protected $_recursive = array();
+
+/**
+ * Saves the binding state.
+ * 
+ * @var array
+ * @access protected
+ */
+	protected $_wasBound = array();
 	
 /**
  * Behavior setup - Constructor
@@ -32,7 +40,7 @@ class QueryableBehavior extends ModelBehavior {
 				'searchModel' => 'Searchable.SearchIndex',
 				'searchField' => 'data',
 				'foreignKey' => 'foreign_key',
-				'modelIndentifier' => 'model'
+				'modelIdentifier' => 'model'
 			);
 		}
 		$this->settings[$Model->alias] = array_merge(
@@ -60,16 +68,15 @@ class QueryableBehavior extends ModelBehavior {
 				$Model->recursive = 0;
 			}
 
-			if (empty($Model->hasOne[$this->getSetting('searchModel')])) {
+			list($plugin, $searchmodel) = pluginSplit($this->getSetting($Model, 'searchModel'));
+			if (!isset($Model->hasOne[$searchmodel])) {
 				if (!$this->_bindSearchModel($Model)) {
 					unset($query['term']);
 					return $query;
 				}
 			}
 
-			list($plugin, $searchmodel) = pluginSplit($this->getSetting('searchModel'));
-
-			$term = implode(' ', array_map(array($this, 'replace'), preg_split('/[\s_]/', $query['term']))) . '*';
+			$term = implode(' ', array_map(array($this, '_replace'), preg_split('/[\s_]/', $query['term']))) . '*';
 			unset($query['term']);
 
 			$match = "MATCH(`{$searchmodel}`.`{$this->getSetting($Model, 'searchField')}`) ";
@@ -91,7 +98,14 @@ class QueryableBehavior extends ModelBehavior {
  * @access public
  */
 	public function afterFind(&$Model, $results, $primary) {
-		$Model->recursive = $this->_recursive[$Model->alias];
+		if (!empty($this->_wasBound[$Model->alias])) {
+			$Model->unbindModel(array('hasOne' => array($this->_wasBound[$Model->alias])), false);
+			$this->_wasBound[$Model->alias] = false;
+		}
+		if (!empty($this->_recursive[$Model->alias])) {
+			$Model->recursive = $this->_recursive[$Model->alias];
+			$this->_recursive[$Model->alias] = null;
+		}
 		return $results;
 	}
 
@@ -104,7 +118,7 @@ class QueryableBehavior extends ModelBehavior {
  * 
  */
 	protected function _bindSearchModel(&$Model) {
-		list($plugin, $searchmodel) = pluginSplit($this->getSetting('searchModel'));
+		list($plugin, $searchmodel) = pluginSplit($this->getSetting($Model, 'searchModel'));
 
 		$options = array(
 			'hasOne' => array(
@@ -113,14 +127,16 @@ class QueryableBehavior extends ModelBehavior {
 		);
 
 		if ($plugin) {
-			$options[$searchmodel]['className'] = "$plugin.$searchmodel";
+			$options['hasOne'][$searchmodel]['className'] = "$plugin.$searchmodel";
 		}
 
-		$options[$searchmodel]['foreignKey'] = $this->getSetting('foreignKey');
-		$options[$searchmodel]['conditions'] = "$searchmodel.{$this->getSetting('modelIdentifier')} = ";
-		$options[$searchmodel]['conditions'] .= "'{$Model->alias}'";
+		$options['hasOne'][$searchmodel]['foreignKey'] = $this->getSetting($Model, 'foreignKey');
+		$options['hasOne'][$searchmodel]['conditions'] = "$searchmodel.{$this->getSetting($Model, 'modelIdentifier')} = ";
+		$options['hasOne'][$searchmodel]['conditions'] .= "'{$Model->alias}'";
 
-		return $Model->bindModel($options);
+		$this->_wasBound[$Model->alias] = $searchmodel;
+
+		return $Model->bindModel($options, false);
 	}
 
 /**
@@ -130,7 +146,7 @@ class QueryableBehavior extends ModelBehavior {
  * @param NULL|string $key if null, gets all settings, otherwise setting for key $key
  */
 	public function getSetting(&$Model, $key = null) {
-		if (null !== $key) {
+		if (null == $key) {
 			return $this->settings[$Model->alias];
 		}
 
