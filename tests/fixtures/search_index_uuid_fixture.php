@@ -1,6 +1,6 @@
 <?php
-class SearchIndexFixture extends CakeTestFixture {
-    var $name = 'SearchIndex';
+class SearchIndexUuidFixture extends CakeTestFixture {
+    var $name = 'SearchIndexUuid';
     var $table = 'search_index';
 
     var $fields = array(
