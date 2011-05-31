@@ -11,7 +11,7 @@
 class QueryableBehavior extends ModelBehavior {
 
 /**
- * Saves the binding state and tells the Behavior to unbind
+ * Saves the Model's recursive to restore it in clean up
  * 
  * @var array
  * @access protected
@@ -117,7 +117,6 @@ class QueryableBehavior extends ModelBehavior {
  * @param Model &$Model A reference to the model object the Behavior is attached to
  * @return bool True on success, false otherwise
  * @access protected
- * 
  */
 	protected function _bindSearchModel(&$Model) {
 		list($plugin, $searchmodel) = pluginSplit($this->getSetting($Model, 'searchModel'));
@@ -146,6 +145,8 @@ class QueryableBehavior extends ModelBehavior {
  * 
  * @param Model &$Model A reference to the model object the Behavior is attached to
  * @param NULL|string $key if null, gets all settings, otherwise setting for key $key
+ * @return mixed The settings for current Model or NULL if key was not found
+ * @access public
  */
 	public function getSetting(&$Model, $key = null) {
 		if (null == $key) {
