@@ -83,6 +83,8 @@ class QueryableBehavior extends ModelBehavior {
 			$match .= "AGAINST('{$term}' IN BOOLEAN MODE)";
 
 			$query['conditions'][] = array("$match >" => 0);
+
+			$query['group'][] = "{$Model->alias}.{$Model->primaryKey}";
 		}
 		return $query;
 	}
