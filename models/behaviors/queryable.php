@@ -23,6 +23,41 @@ class QueryableBehavior extends ModelBehavior {
  * 
  * @param Model &$Model A reference to the model object the Behavior is attached to
  * @param Array $settings The passed in settings for this Behavior
+ * 
+ * ### Options:
+ *
+ * - `searchModel`     string - The name of the SearchIndex model to use for querying. If the model is
+ *                     located in another plugin use the 'Plugin.Model' notation, toherwise just use
+ *                     'Model'. It should be a Model that is either extending SearchIndex or implementing
+ *                     it's data structure with corresponding FULLTEXT indices.
+ *                     Defaults to 'SearchIndex'
+ * 
+ * - `searchField`     string - The database field name that contains the indexed data in a Mysql
+ *                     FULLTEXT index.
+ *                     Defaults to 'data'
+ * 
+ * - `foreignKey`      string - The database field name that contains the foreign key for the Model id.
+ *                     Defaults to 'foreign_key'
+ * 
+ * - `modelIdentifier` string - The database fieldname containing the Model identifier (Model alias).
+ *                     Defaults to 'model'
+ * 
+ * - `includeIndex`    boolean - Indicating wether the corresponding SearchIndex item should be
+ *                     included with the results.
+ *                     Defaults to false
+ * 
+ * - `boolean`         boolean - Indicating wether QueryableBehavior should use matching in boolean or
+ *                     non-boolean mode.
+ *                     Defaults to true
+ * 
+ * - `minScore`        float - The minimum score for which results should be fetched.
+ *                     Only applicable when 'boolean' setting is set to false.
+ *                     Defaults to 2.0
+ * 
+ * - `scoreField`      string - The name of the virtual score field to be appended to the results.
+ *                     Only applicable when 'boolean' setting is set to false.
+ *                     Defaults to 'score'
+ * 
  * @access public
  * @return void
  */
@@ -33,10 +68,10 @@ class QueryableBehavior extends ModelBehavior {
 				'searchField' => 'data',
 				'foreignKey' => 'foreign_key',
 				'modelIdentifier' => 'model',
-				'scoreField' => 'score',
-				'minScore' => 2,
+				'includeIndex' => false,
 				'boolean' => true,
-				'includeIndex' => false
+				'minScore' => 2.0,
+				'scoreField' => 'score'
 			);
 		}
 		$this->settings[$Model->alias] = array_merge(
@@ -130,10 +165,6 @@ class QueryableBehavior extends ModelBehavior {
 					"$searchmodel.{$this->getSearchSetting($Model, 'searchField')}",
 					"$searchmodel.{$this->getSearchSetting($Model, 'modelIdentifier')}"
 				);
-				if (!$this->getSearchSetting($Model, 'boolean')) {
-					$match = "MATCH(`{$searchmodel}`.`{$this->getSearchSetting($Model, 'searchField')}`) AS score";
-					$requiredFields[] = $match;
-				}
 				if (!empty($contain['contain'][$searchmodel]['fields'])) {
 					$contain['contain'][$searchmodel]['fields'] = array_merge(
 						$contain['contain'][$searchmodel]['fields'],
@@ -195,11 +226,9 @@ class QueryableBehavior extends ModelBehavior {
 	protected function _processQuery(&$Model, &$query, $searchmodel) {
 		$scoreField = $this->getSearchSetting($Model, 'scoreField');
 		$includeIndex = (bool) $this->getSearchSetting($Model, 'includeIndex');
+
 		$term = implode(' ', array_map(array($this, '_replace'), preg_split('/[\s_]/', $query['term']))) . ' *';
 		unset($query['term']);
-
-		$match = "MATCH(`{$searchmodel}`.`{$this->getSearchSetting($Model, 'searchField')}`) ";
-		$match .= "AGAINST('{$term}'";
 
 		if (empty($query['fields']) && !$includeIndex) {
 			$query['fields'] = $this->_makeFields($Model, $searchmodel);
@@ -208,6 +237,9 @@ class QueryableBehavior extends ModelBehavior {
 		if (!empty($query['fields']) && $includeIndex) {
 			$query['fields'] = array_merge($query['fields'], $this->_makeFields($Model, $searchmodel, true));
 		}
+
+		$match = "MATCH(`{$searchmodel}`.`{$this->getSearchSetting($Model, 'searchField')}`) ";
+		$match .= "AGAINST('{$term}'";
 
 		if ($this->getSearchSetting($Model, 'boolean')) {
 			$match .= ' IN BOOLEAN MODE)';
@@ -219,7 +251,6 @@ class QueryableBehavior extends ModelBehavior {
 				$query['fields'][] = $scoreField;
 			}
 			$query['conditions'][] = array("$match >=" => $this->getSearchSetting($Model, 'minScore'));
-			$query['sort'][] = "score DESC";
 		}
 
 		$query['group'][] = "{$Model->alias}.{$Model->primaryKey}";
@@ -278,14 +309,17 @@ class QueryableBehavior extends ModelBehavior {
  */
 	protected function _makeFields(&$Model, $searchmodel, $useSearch = false) {
 		$return = array();
+
 		if (!$useSearch) {
-			foreach (array_keys($Model->schema()) as $field) {
-				$return[] = "{$Model->alias}.$field";
-			}
+			$schema = array_keys($Model->schema());
+			$alias = $Model->alias;
 		} else {
-			foreach (array_keys($Model->{$searchmodel}->schema()) as $field) {
-				$return[] = "$searchmodel.$field";
-			}
+			$schema = array_keys($Model->{$searchmodel}->schema());
+			$alias = $searchmodel;
+		}
+
+		foreach ($schema as $field) {
+			$return[] = "$alias.$field";
 		}
 
 		return $return;
