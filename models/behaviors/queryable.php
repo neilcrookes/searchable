@@ -116,7 +116,7 @@ class QueryableBehavior extends ModelBehavior {
 		$useRuntime = false;
 		$contain = array();
 
-		if (empty($query['contain'])) {
+		if (!isset($query['contain'])) {
 			if (!empty($Model->Behaviors->Containable->runtime[$Model->alias])) {
 				$useRuntime = true;
 				$contain = $Model->Behaviors->Containable->runtime[$Model->alias];
@@ -125,7 +125,7 @@ class QueryableBehavior extends ModelBehavior {
 			$contain['contain'] = $query['contain'];
 		}
 
-		if (!empty($contain['contain'])) {
+		if (!empty($contain)) {
 			if (!empty($contain['contain'][$searchmodel])) {
 				$pk = $Model->{$searchmodel}->primaryKey;
 				$requiredFields = array(
@@ -141,7 +141,7 @@ class QueryableBehavior extends ModelBehavior {
 				} else {
 					$contain['contain'][$searchmodel]['fields'] = $requiredFields;
 				}
-			} elseif (!in_array($searchmodel, array_values($contain['contain']))) {
+			} elseif (!in_array($searchmodel, $contain['contain'])) {
 				$contain['contain'][] = $searchmodel;
 			}
 		}
@@ -149,7 +149,9 @@ class QueryableBehavior extends ModelBehavior {
 		if ($useRuntime) {
 			$Model->Behaviors->Containable->runtime[$Model->alias] = $contain;
 		} else {
-			$query['contain'] = $contain['contain'];
+			if (!empty($contain['contain'])) {
+				$query['contain'] = $contain['contain'];
+			}
 		}
 	}
 
