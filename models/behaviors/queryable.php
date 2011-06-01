@@ -17,6 +17,14 @@ class QueryableBehavior extends ModelBehavior {
  * @access protected
  */
 	protected $_recursive = array();
+
+/**
+ * Saves the Model's binding state
+ * 
+ * @var array
+ * @access protected
+ */
+	protected $_wasBound = array();
 	
 /**
  * Behavior setup - Constructor
@@ -32,7 +40,11 @@ class QueryableBehavior extends ModelBehavior {
 				'searchModel' => 'Searchable.SearchIndex',
 				'searchField' => 'data',
 				'foreignKey' => 'foreign_key',
-				'modelIdentifier' => 'model'
+				'modelIdentifier' => 'model',
+				'scoreField' => 'score',
+				'minScore' => 2,
+				'boolean' => true,
+				'includeIndex' => false
 			);
 		}
 		$this->settings[$Model->alias] = array_merge(
@@ -60,26 +72,20 @@ class QueryableBehavior extends ModelBehavior {
 				$Model->recursive = 0;
 			}
 
-			list($plugin, $searchmodel) = pluginSplit($this->getSetting($Model, 'searchModel'));
+			list($plugin, $searchmodel) = pluginSplit($this->getSearchSetting($Model, 'searchModel'));
 			if (!isset($Model->hasOne[$searchmodel])) {
 				if (!$this->_bindSearchModel($Model)) {
 					unset($query['term']);
 					return $query;
 				}
+				$this->_wasBound[$Model->alias] = $searchmodel;
 			}
 
 			if ($Model->Behaviors->attached('Containable')) {
 				$this->_processContainableOptions($Model, $query, $searchmodel);
 			}
 
-			$term = implode(' ', array_map(array($this, '_replace'), preg_split('/[\s_]/', $query['term']))) . '*';
-			unset($query['term']);
-
-			$match = "MATCH(`{$searchmodel}`.`{$this->getSetting($Model, 'searchField')}`) ";
-			$match .= "AGAINST('{$term}' IN BOOLEAN MODE)";
-
-			$query['conditions'][] = array("$match >" => 0);
-			$query['group'][] = "{$Model->alias}.{$Model->primaryKey}";
+			$this->_processQuery($Model, $query, $searchmodel);
 		}
 		return $query;
 	}
@@ -98,6 +104,12 @@ class QueryableBehavior extends ModelBehavior {
 		if (!empty($this->_recursive[$Model->alias])) {
 			$Model->recursive = $this->_recursive[$Model->alias];
 			$this->_recursive[$Model->alias] = null;
+		}
+		if (!$this->getSearchSetting($Model, 'includeIndex')) {
+			if (!empty($this->_wasBound[$Model->alias])) {
+				$Model->unbindModel(array('hasOne' => array($this->_wasBound[$Model->alias])), false);
+				$this->_wasBound[$Model->alias] = null;
+			}
 		}
 		return $results;
 	}
@@ -129,10 +141,14 @@ class QueryableBehavior extends ModelBehavior {
 			if (!empty($contain['contain'][$searchmodel])) {
 				$pk = $Model->{$searchmodel}->primaryKey;
 				$requiredFields = array(
-					"$searchmodel.$pk", "$searchmodel.{$this->getSetting($Model, 'foreignKey')}",
-					"$searchmodel.{$this->getSetting($Model, 'searchField')}",
-					"$searchmodel.{$this->getSetting($Model, 'modelIdentifier')}"
+					"$searchmodel.$pk", "$searchmodel.{$this->getSearchSetting($Model, 'foreignKey')}",
+					"$searchmodel.{$this->getSearchSetting($Model, 'searchField')}",
+					"$searchmodel.{$this->getSearchSetting($Model, 'modelIdentifier')}"
 				);
+				if (!$this->getSearchSetting($Model, 'boolean')) {
+					$match = "MATCH(`{$searchmodel}`.`{$this->getSearchSetting($Model, 'searchField')}`) AS score";
+					$requiredFields[] = $match;
+				}
 				if (!empty($contain['contain'][$searchmodel]['fields'])) {
 					$contain['contain'][$searchmodel]['fields'] = array_merge(
 						$contain['contain'][$searchmodel]['fields'],
@@ -163,7 +179,7 @@ class QueryableBehavior extends ModelBehavior {
  * @access protected
  */
 	protected function _bindSearchModel(&$Model) {
-		list($plugin, $searchmodel) = pluginSplit($this->getSetting($Model, 'searchModel'));
+		list($plugin, $searchmodel) = pluginSplit($this->getSearchSetting($Model, 'searchModel'));
 
 		$options = array(
 			'hasOne' => array(
@@ -175,11 +191,53 @@ class QueryableBehavior extends ModelBehavior {
 			$options['hasOne'][$searchmodel]['className'] = "$plugin.$searchmodel";
 		}
 
-		$options['hasOne'][$searchmodel]['foreignKey'] = $this->getSetting($Model, 'foreignKey');
-		$options['hasOne'][$searchmodel]['conditions'] = "$searchmodel.{$this->getSetting($Model, 'modelIdentifier')} = ";
+		$options['hasOne'][$searchmodel]['foreignKey'] = $this->getSearchSetting($Model, 'foreignKey');
+		$options['hasOne'][$searchmodel]['conditions'] = "$searchmodel.{$this->getSearchSetting($Model, 'modelIdentifier')} = ";
 		$options['hasOne'][$searchmodel]['conditions'] .= "'{$Model->alias}'";
 
 		return $Model->bindModel($options);
+	}
+
+/**
+ * Processes the query and adds required stuff to the Model
+ * 
+ * @param Model &$Model a reference to the current model
+ * @param Array &$query A reference to the currently processed query
+ * @param string $searchmodel The currently attached SearchIndex Model
+ * @return void
+ * @access protected
+ */
+	protected function _processQuery(&$Model, &$query, $searchmodel) {
+		$scoreField = $this->getSearchSetting($Model, 'scoreField');
+		$includeIndex = (bool) $this->getSearchSetting($Model, 'includeIndex');
+		$term = implode(' ', array_map(array($this, '_replace'), preg_split('/[\s_]/', $query['term']))) . ' *';
+		unset($query['term']);
+
+		$match = "MATCH(`{$searchmodel}`.`{$this->getSearchSetting($Model, 'searchField')}`) ";
+		$match .= "AGAINST('{$term}'";
+
+		if (empty($query['fields']) && !$includeIndex) {
+			$query['fields'] = $this->_makeFields($Model, $searchmodel);
+		}
+		
+		if (!empty($query['fields']) && $includeIndex) {
+			$query['fields'] = array_merge($query['fields'], $this->_makeFields($Model, $searchmodel, true));
+		}
+
+		if ($this->getSearchSetting($Model, 'boolean')) {
+			$match .= ' IN BOOLEAN MODE)';
+			$query['conditions'][] = array("$match");
+		} else {
+			$match .= ')';
+			$Model->virtualFields[$scoreField] = $match;
+			if (!empty($query['fields'])) {
+				$query['fields'][] = $scoreField;
+			}
+			$query['conditions'][] = array("$match >=" => $this->getSearchSetting($Model, 'minScore'));
+			$query['sort'][] = "score DESC";
+		}
+
+		$query['group'][] = "{$Model->alias}.{$Model->primaryKey}";
 	}
 
 /**
@@ -190,7 +248,7 @@ class QueryableBehavior extends ModelBehavior {
  * @return mixed The settings for current Model or NULL if key was not found
  * @access public
  */
-	public function getSetting(&$Model, $key = null) {
+	public function getSearchSetting(&$Model, $key = null) {
 		if (null == $key) {
 			return $this->settings[$Model->alias];
 		}
@@ -202,6 +260,19 @@ class QueryableBehavior extends ModelBehavior {
 	}
 
 /**
+ * Sets a Behavior setting for Model $Model and key $key to $value
+ * 
+ * @param Model &$Model
+ * @param string $key
+ * @param mixed $value
+ * @return void
+ * @access public
+ */
+	public function setSearchSetting(&$Model, $key, $value) {
+		$this->settings[$Model->alias][$key] = $value;
+	}
+
+/**
  * Helper method to parse search term
  * 
  * @param string $v The term to parse
@@ -210,5 +281,28 @@ class QueryableBehavior extends ModelBehavior {
  */
 	protected function _replace($v) {
 		return str_replace(array(' +-', ' +~', ' ++', ' +'), array('-', '~', '+', '+'), " +{$v}");
+	}
+
+/**
+ * Creates a field list from the Model schema
+ * 
+ * @param Model &$Model
+ * @param string $searchmodel
+ * @return Array fieldlist
+ * @access protected
+ */
+	protected function _makeFields(&$Model, $searchmodel, $useSearch = false) {
+		$return = array();
+		if (!$useSearch) {
+			foreach (array_keys($Model->schema()) as $field) {
+				$return[] = "{$Model->alias}.$field";
+			}
+		} else {
+			foreach (array_keys($Model->{$searchmodel}->schema()) as $field) {
+				$return[] = "$searchmodel.$field";
+			}
+		}
+
+		return $return;
 	}
 }
