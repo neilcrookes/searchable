@@ -101,10 +101,7 @@ class QueryableBehavior extends ModelBehavior {
 
 			list($plugin, $searchmodel) = pluginSplit($this->getSearchSetting($Model, 'searchModel'));
 			if (!isset($Model->hasOne[$searchmodel])) {
-				if (!$this->_bindSearchModel($Model)) {
-					unset($query['term']);
-					return $query;
-				}
+				$this->_bindSearchModel($Model);
 			}
 
 			if ($Model->Behaviors->attached('Containable')) {
@@ -227,7 +224,7 @@ class QueryableBehavior extends ModelBehavior {
 		$scoreField = $this->getSearchSetting($Model, 'scoreField');
 		$includeIndex = (bool) $this->getSearchSetting($Model, 'includeIndex');
 
-		$term = implode(' ', array_map(array($this, '_replace'), preg_split('/[\s_]/', $query['term']))) . ' *';
+		$term = implode(' ', array_map(array($this, '_replace'), preg_split('/[\s_]/', $query['term'])));
 		unset($query['term']);
 
 		if (empty($query['fields']) && !$includeIndex) {
@@ -285,7 +282,9 @@ class QueryableBehavior extends ModelBehavior {
  * @access public
  */
 	public function setSearchSetting(&$Model, $key, $value) {
-		$this->settings[$Model->alias][$key] = $value;
+		if (isset($this->settings[$Model->alias][$key])) {
+			$this->settings[$Model->alias][$key] = $value;
+		}
 	}
 
 /**
@@ -296,7 +295,7 @@ class QueryableBehavior extends ModelBehavior {
  * @return string
  */
 	protected function _replace($v) {
-		return str_replace(array(' +-', ' +~', ' ++', ' +'), array('-', '~', '+', '+'), " +{$v}");
+		return str_replace(array(' +-', ' +~', ' ++', ' +'), array('-', '~', '+', '+'), " {$v}");
 	}
 
 /**
