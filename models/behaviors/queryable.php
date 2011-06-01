@@ -17,14 +17,6 @@ class QueryableBehavior extends ModelBehavior {
  * @access protected
  */
 	protected $_recursive = array();
-
-/**
- * Saves the Model's binding state
- * 
- * @var array
- * @access protected
- */
-	protected $_wasBound = array();
 	
 /**
  * Behavior setup - Constructor
@@ -78,7 +70,6 @@ class QueryableBehavior extends ModelBehavior {
 					unset($query['term']);
 					return $query;
 				}
-				$this->_wasBound[$Model->alias] = $searchmodel;
 			}
 
 			if ($Model->Behaviors->attached('Containable')) {
@@ -104,12 +95,6 @@ class QueryableBehavior extends ModelBehavior {
 		if (!empty($this->_recursive[$Model->alias])) {
 			$Model->recursive = $this->_recursive[$Model->alias];
 			$this->_recursive[$Model->alias] = null;
-		}
-		if (!$this->getSearchSetting($Model, 'includeIndex')) {
-			if (!empty($this->_wasBound[$Model->alias])) {
-				$Model->unbindModel(array('hasOne' => array($this->_wasBound[$Model->alias])), false);
-				$this->_wasBound[$Model->alias] = null;
-			}
 		}
 		return $results;
 	}
