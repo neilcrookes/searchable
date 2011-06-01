@@ -77,29 +77,7 @@ class QueryableBehavior extends ModelBehavior {
 			}
 
 			if ($Model->Behaviors->attached('Containable')) {
-				if (!empty($query['contain'])) {
-					$pk = $Model->{$searchmodel}->primaryKey;
-					$requiredFields = array(
-						"$searchmodel.$pk", "$searchmodel.{$this->getSetting($Model, 'foreignKey')}",
-						"$searchmodel.{$this->getSetting($Model, 'searchField')}",
-						"$searchmodel.{$this->getSetting($Model, 'modelIdentifier')}"
-					);
-					
-					if (!empty($query['contain'][$searchmodel])) {
-						if (!empty($query['contain'][$searchmodel]['fields'])) {
-							$query['contain'][$searchmodel]['fields'] = array_merge(
-								$query['contain'][$searchmodel]['fields'],
-								$requiredFields
-							);
-						} else {
-							$query['contain'][$searchmodel]['fields'] = $requiredFields;
-						}
-					} else {
-						if (!in_array($searchmodel, array_values($query['contain']))) {
-							$query['contain'][] = $searchmodel;
-						}
-					}
-				}
+				$this->_processContainableOptions($Model, $query, $searchmodel);
 			}
 
 			$term = implode(' ', array_map(array($this, '_replace'), preg_split('/[\s_]/', $query['term']))) . '*';
@@ -125,15 +103,62 @@ class QueryableBehavior extends ModelBehavior {
  * @access public
  */
 	public function afterFind(&$Model, $results, $primary) {
-		if (!empty($this->_wasBound[$Model->alias])) {
-			$Model->unbindModel(array('hasOne' => array($this->_wasBound[$Model->alias])), false);
-			$this->_wasBound[$Model->alias] = false;
-		}
 		if (!empty($this->_recursive[$Model->alias])) {
 			$Model->recursive = $this->_recursive[$Model->alias];
 			$this->_recursive[$Model->alias] = null;
 		}
 		return $results;
+	}
+
+/**
+ * Processes options for Containable by parsing the current Containable state and adding
+ * required fields
+ * 
+ * @param Model &$Model The current Model
+ * @param Array &$query The query to be processed
+ * @param string $searchmodel The name of the searchmodel that should be used
+ * @return void
+ * @access protected
+ */
+	protected function _processContainableOptions(&$Model, &$query, $searchmodel) {
+		$useRuntime = false;
+		$contain = array();
+
+		if (empty($query['contain'])) {
+			if (!empty($Model->Behaviors->Containable->runtime[$Model->alias])) {
+				$useRuntime = true;
+				$contain = $Model->Behaviors->Containable->runtime[$Model->alias];
+			}
+		} else {
+			$contain['contain'] = $query['contain'];
+		}
+
+		if (!empty($contain['contain'])) {
+			if (!empty($contain['contain'][$searchmodel])) {
+				$pk = $Model->{$searchmodel}->primaryKey;
+				$requiredFields = array(
+					"$searchmodel.$pk", "$searchmodel.{$this->getSetting($Model, 'foreignKey')}",
+					"$searchmodel.{$this->getSetting($Model, 'searchField')}",
+					"$searchmodel.{$this->getSetting($Model, 'modelIdentifier')}"
+				);
+				if (!empty($contain['contain'][$searchmodel]['fields'])) {
+					$contain['contain'][$searchmodel]['fields'] = array_merge(
+						$contain['contain'][$searchmodel]['fields'],
+						$requiredFields
+					);
+				} else {
+					$contain['contain'][$searchmodel]['fields'] = $requiredFields;
+				}
+			} elseif (!in_array($searchmodel, array_values($contain['contain']))) {
+				$contain['contain'][] = $searchmodel;
+			}
+		}
+
+		if ($useRuntime) {
+			$Model->Behaviors->Containable->runtime[$Model->alias] = $contain;
+		} else {
+			$query['contain'] = $contain['contain'];
+		}
 	}
 
 /**
@@ -160,9 +185,7 @@ class QueryableBehavior extends ModelBehavior {
 		$options['hasOne'][$searchmodel]['conditions'] = "$searchmodel.{$this->getSetting($Model, 'modelIdentifier')} = ";
 		$options['hasOne'][$searchmodel]['conditions'] .= "'{$Model->alias}'";
 
-		$this->_wasBound[$Model->alias] = $searchmodel;
-
-		return $Model->bindModel($options, false);
+		return $Model->bindModel($options);
 	}
 
 /**
