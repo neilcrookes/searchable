@@ -17,14 +17,6 @@ class QueryableBehavior extends ModelBehavior {
  * @access protected
  */
 	protected $_recursive = array();
-
-/**
- * Saves the binding state.
- * 
- * @var array
- * @access protected
- */
-	protected $_wasBound = array();
 	
 /**
  * Behavior setup - Constructor
