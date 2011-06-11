@@ -202,7 +202,7 @@ class SearchableBehavior extends ModelBehavior {
             $this->_initialiseSearchIndexData($model, $created);
 
             if (method_exists($model, 'getSearchableData')) {
-                $data = $model->getSearchableData($this->_modelData);
+                $data = $model->getSearchableData($this->_modelData, $this->_foreignKey);
             } else {
                 $data = $this->_getSearchableData($model);
             }
