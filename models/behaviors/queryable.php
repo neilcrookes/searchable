@@ -93,7 +93,7 @@ class QueryableBehavior extends ModelBehavior {
  * @access public
  */
 	public function beforeFind(&$Model, $query) {
-		if (!empty($query['term']) && $Model->Behaviors->enabled('Searchable.Queryable')) {
+		if (!empty($query['term'])) {
 			if ($Model->recursive < 0) {
 				$this->_recursive[$Model->alias] = $Model->recursive;
 				$Model->recursive = 0;
@@ -128,6 +128,11 @@ class QueryableBehavior extends ModelBehavior {
 			$Model->recursive = $this->_recursive[$Model->alias];
 			$this->_recursive[$Model->alias] = null;
 		}
+
+		if (!empty($Model->virtualFields[$this->getSearchSetting($Model, 'scoreField')])) {
+			unset($Model->virtualFields[$this->getSearchSetting($Model, 'scoreField')]);
+		}
+
 		return $results;
 	}
 
