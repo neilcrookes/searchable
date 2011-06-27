@@ -93,7 +93,7 @@ class QueryableBehavior extends ModelBehavior {
  * @access public
  */
 	public function beforeFind(&$Model, $query) {
-		if (!empty($query['term'])) {
+		if (!empty($query['term']) && $Model->Behaviors->enabled('Searchable.Queryable')) {
 			if ($Model->recursive < 0) {
 				$this->_recursive[$Model->alias] = $Model->recursive;
 				$Model->recursive = 0;
