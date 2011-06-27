@@ -36,7 +36,7 @@ _[GIT Clone]_
 In your plugin directory type
 <pre><code>git clone git://github.com/josegonzalez/searchable.git searchable</code></pre>
 
-h2. Usage
+h2. Usage Searchable Behavior
 
 # Run the SQL code contained in @searchable/config/sql@. Those using the CakeDC @Migrations@  plugin can also use the included Migrations file, in @searchable/config/migrations@. A @schema.php@ file is forthcoming.
 # Attach the Searchable Behavior to the models in your app that you want to search:
@@ -51,6 +51,28 @@ include(APP.'plugins'.DS.'searchable'.DS.'config'.DS.'routes.php');
 <pre><code>echo $this->element('form', array('plugin' => 'searchable'));</code></pre>
 
 Now type something in the search box and go.
+
+h2. Usage Queryable Behavior
+
+This Behavior is there to decouple indexing from querying.
+
+If you both want to query and index the Model directly, just attach both @Searchable@ and @Queryable@ Behaviors to the Model. Otherwise you can still use the @SearchIndex@ Model to do queries on the search index directly.
+
+# Attach the Queryable Behavior to the models in your app that you want to search (with default settings):
+<pre><code>
+var $actsAs = array(
+	'Searchable.Queryable' => array(
+		'searchModel' => 'Searchable.SearchIndex',
+		'searchField' => 'data',
+		'foreignKey' => 'foreign_key',
+		'modelIdentifier' => 'model'
+	)
+);
+</code></pre>
+# Add a 'term' key to your find parameters in @Model::find()@:
+<pre><code>$this->Model->find('all', array('term' => '+Foo -Bar'));</code></pre>
+
+Enjoy the matched results
 
 h2. Notes
 
