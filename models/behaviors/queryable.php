@@ -130,7 +130,9 @@ class QueryableBehavior extends ModelBehavior {
 		}
 
 		if (!empty($Model->virtualFields[$this->getSearchSetting($Model, 'scoreField')])) {
-			unset($Model->virtualFields[$this->getSearchSetting($Model, 'scoreField')]);
+			if (!$Model->Behaviors->attached('Queryable') || !$Model->Behaviors->enabled('Queryable')) {
+				unset($Model->virtualFields[$this->getSearchSetting($Model, 'scoreField')]);
+			}
 		}
 
 		return $results;
