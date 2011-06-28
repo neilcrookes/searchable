@@ -109,6 +109,10 @@ class QueryableBehavior extends ModelBehavior {
 			}
 
 			$this->_processQuery($Model, $query, $searchmodel);
+		} else {
+			if (!empty($Model->virtualFields[$this->getSearchSetting($Model, 'scoreField')])) {
+				unset($Model->virtualFields[$this->getSearchSetting($Model, 'scoreField')]);
+			}
 		}
 		return $query;
 	}
@@ -127,12 +131,6 @@ class QueryableBehavior extends ModelBehavior {
 		if (!empty($this->_recursive[$Model->alias])) {
 			$Model->recursive = $this->_recursive[$Model->alias];
 			$this->_recursive[$Model->alias] = null;
-		}
-
-		if (!empty($Model->virtualFields[$this->getSearchSetting($Model, 'scoreField')])) {
-			if (!$Model->Behaviors->attached('Queryable') || !$Model->Behaviors->enabled('Queryable')) {
-				unset($Model->virtualFields[$this->getSearchSetting($Model, 'scoreField')]);
-			}
 		}
 
 		return $results;
