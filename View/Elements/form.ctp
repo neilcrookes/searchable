@@ -1,11 +1,11 @@
 <?php
-echo $form->create('SearchIndex', array(
+echo $this->Form->create('SearchIndex', array(
   'url' => array(
     'plugin' => 'searchable',
     'controller' => 'search_indexes',
     'action' => 'index'
   )
 ));
-echo $form->input('term', array('label' => 'Search', 'id' => 'SearchSearch'));
-echo $form->end();
+echo $this->Form->input('term', array('label' => 'Search', 'id' => 'SearchSearch'));
+echo $this->Form->end();
 ?>

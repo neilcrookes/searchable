@@ -248,6 +248,8 @@ class SearchableBehavior extends ModelBehavior {
             $url[] = $this->_foreignKey;
         } else {
             foreach ($nonStandardUrlComponents as $modelName => $modelFields) {
+
+				// the non-standard Url must be present in fields.
                 foreach ($modelFields as $key => $value) {
                     if (isset($data["{$modelName}.{$value}"])) {
                         $value = $data["{$modelName}.{$value}"];

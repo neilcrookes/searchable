@@ -1,6 +1,6 @@
 <?php
 App::import('Core', 'Sanitize');
-class SearchComponent extends Object {
+class SearchComponent extends Component {
 
 /**
  * Reference to current controller
@@ -59,19 +59,19 @@ class SearchComponent extends Object {
             )
         ), $paginateOptions));
 
-        if (isset($this->_controller->params['type']) && $this->_controller->params['type'] != 'All') {
-            $this->_controller->data['SearchIndex']['type'] = Sanitize::escape($this->_controller->params['type']);
+        if (isset($this->_controller->request->params['named']['type']) && $this->_controller->request->params['named']['type'] != 'All') {
+            $this->_controller->request->data['SearchIndex']['type'] = Sanitize::escape($this->_controller->request->params['named']['type']);
             $this->_controller->paginate['SearchIndex']['conditions']['model'] = $this->_controller->data['SearchIndex']['type'];
         }
 
         // Add term condition, and sorting
-        if (!$term && isset($this->_controller->params['term'])) {
-            $term = $this->_controller->params['term'];
+        if (!$term && isset($this->_controller->request->params['named']['term'])) {
+            $term = $this->_controller->request->params['named']['term'];
         }
 
         if ($term) {
             $term = Sanitize::escape($term);
-            $this->_controller->data['SearchIndex']['term'] = $term;
+            $this->_controller->request->data['SearchIndex']['term'] = $term;
 
             $term = implode(' ', array_map(array($this, 'replace'), preg_split('/[\s_]/', $term))) . '*';
 

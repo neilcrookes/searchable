@@ -201,32 +201,28 @@ class BuildSearchIndexShell extends Shell {
  */
     protected function _setAvailableModels() {
         // Initialise paths array with paths to app/models
-        $paths = array(MODELS);
+        $paths = App::path('Model');
 
         // Get a list of the plugins
-        $plugins = Configure::listObjects('plugin');
+        $plugins = App::objects('Plugin');
 
         // For each plugin, add the plugin model path to paths and instantiate the
         // plugin AppModel in case the plugin contains a model that is Searchable
         // and we need to instantiate it later
         if (!empty($plugins)) {
             foreach ($plugins AS $plugin) {
-                $paths[] = APP . 'plugins' . DS . Inflector::underscore($plugin) . DS . 'models' . DS;
+                $paths[] = APP . 'Plugin' . DS . Inflector::underscore($plugin) . DS . 'Model' . DS;
                 App::import('Model', $plugin . '.' . $plugin . 'Model');
             }
         }
 
         // Get a list of all the models in all the paths and sort them
         // alphabetically
-        $modelNames = Configure::listObjects('model', $paths);
+        $modelNames = App::objects('Model');
         sort($modelNames);
 
         // Store those that exist and have Searchable attached
         foreach ($modelNames as $modelName) {
-            // Try to import the model
-            if (!App::import('Model', $modelName, true, $paths)) {
-                continue;
-            }
 
             // Skip abstract classes
             try {

@@ -2,7 +2,7 @@
 class SearchIndex extends SearchableAppModel {
     var $name = 'SearchIndex';
     var $useTable = 'search_index';
-    var $_findMethods = array(
+    var $findMethods = array(
         'search' => true, 'types' => true
     );
 
@@ -16,10 +16,12 @@ class SearchIndex extends SearchableAppModel {
         if (($types = Cache::read('search_index_types')) !== false) {
             return $types;
         }
-         return $this->find('types');
+        return $this->find('types');
      }
 
     function _findSearch($state, $query, $results = array()) {
+    	
+		debug($query);
         if ($state == 'before') {
             $query['conditions'] = array(
                 array('SearchIndex.active' => 1),
