@@ -2,4 +2,3 @@
 class SearchableAppController extends AppController {
 
 }
-?>
