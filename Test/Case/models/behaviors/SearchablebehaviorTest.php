@@ -43,7 +43,7 @@ class ArticleTwo extends Article {
 
 }
 
-class SearchablebehaviorTestCase extends CakeTestCase {
+class SearchablebehaviorTest extends CakeTestCase {
 
 /**
  * Fixtures used in the SessionTest

@@ -45,7 +45,7 @@ class ArticleTwo extends Article {
 
 }
 
-class QueryablebehaviorTestCase extends CakeTestCase {
+class QueryablebehaviorTest extends CakeTestCase {
 
 /**
  * Fixtures used in the SessionTest

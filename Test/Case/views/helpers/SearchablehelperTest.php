@@ -7,7 +7,7 @@ App::import('Helper', array('Searchable.Searchable', 'Text'));
  * @package       app
  * @subpackage    app.tests.cases.views.helpers
  */
-class SearchablehelperTestCase extends CakeTestCase {
+class SearchablehelperTest extends CakeTestCase {
 
 /**
  * Variable containing example data

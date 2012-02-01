@@ -25,9 +25,9 @@ echo $form->end('View Search Results');
         $paginator->options(array('url' => $params));
     ?>
     <div class="paging">
-        <?php echo $paginator->prev('<< '.__('previous', true), array(), null, array('class'=>'disabled')); ?>
+        <?php echo $paginator->prev('<< '.__('previous'), array(), null, array('class'=>'disabled')); ?>
      | 	<?php echo $paginator->numbers(); ?>
-        <?php echo $paginator->next(__('next', true).' >>', array(), null, array('class'=>'disabled')); ?>
+        <?php echo $paginator->next(__('next').' >>', array(), null, array('class'=>'disabled')); ?>
     </div>
 <?php else: ?>
     <p>Sorry, your search did not return any matches.</p>

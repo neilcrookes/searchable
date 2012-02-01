@@ -82,17 +82,17 @@ class BuildSearchIndexShell extends Shell {
         foreach ($modelNames as $modelName) {
             if ($this->interactive) {
                 // Confirm rebuild index for this model
-                $skip = $this->in(__("Are you sure you want to rebuild the search index for $modelName, 'y' or 'n' or 'q' to exit", true), null, 'n');
+                $skip = $this->in(__("Are you sure you want to rebuild the search index for $modelName, 'y' or 'n' or 'q' to exit"), null, 'n');
 
                 // Quit if they want to
                 if (strtolower($skip) === 'q') {
-                    $this->out(__("Exit", true));
+                    $this->out(__("Exit"));
                     $this->_stop();
                 }
 
                 // Skip if they want to
                 if (strtolower($skip) !== 'y') {
-                    $this->out(__("Skipping " . $modelName, true));
+                    $this->out(__("Skipping " . $modelName));
                     continue;
                 }
             }
@@ -102,7 +102,7 @@ class BuildSearchIndexShell extends Shell {
 
             // Delete the records in the search index for the current model
             if (!$ModelObj->deleteSearchIndex(true)) {
-                $this->err(__('Could not delete search index', true));
+                $this->err(__('Could not delete search index'));
                 $this->_stop();
             }
 
@@ -185,7 +185,7 @@ class BuildSearchIndexShell extends Shell {
                 $configs = array_keys($configs);
                 // Prompt if multiple, which db config to use.
                 if (count($configs) > 1) {
-                    $this->_useDbConfig = $this->in(__('Use Database Config', true) .':', $configs, 'default');
+                    $this->_useDbConfig = $this->in(__('Use Database Config') .':', $configs, 'default');
                 } else { // else use the only one
                     $this->_useDbConfig = current($configs);
                 }
@@ -258,7 +258,7 @@ class BuildSearchIndexShell extends Shell {
  * @return array
  */
     protected function _interactive() {
-        $this->out(__('Possible Models based on your current database:', true));
+        $this->out(__('Possible Models based on your current database:'));
 
         // List available mode names with numbers for easy selection
         $i = 1;
@@ -270,11 +270,11 @@ class BuildSearchIndexShell extends Shell {
         $enteredModel = '';
         while ($enteredModel == '') {
             // Prompt them for a selection
-            $enteredModel = $this->in(__("Enter one or more numbers from the list above separated by a space, or type in the names of one or more other models, 'a' for all or 'q' to exit", true), null, 'q');
+            $enteredModel = $this->in(__("Enter one or more numbers from the list above separated by a space, or type in the names of one or more other models, 'a' for all or 'q' to exit"), null, 'q');
 
             // Quit if they want to
             if (strtolower($enteredModel) === 'q') {
-                $this->out(__("Exit", true));
+                $this->out(__("Exit"));
                 $this->_stop();
             }
         }
@@ -317,7 +317,7 @@ class BuildSearchIndexShell extends Shell {
                 $selectedModelNames[] = Inflector::camelize($enteredModel);
             // Else, tell them it didn't work, and send them back to the start
             } else {
-                $this->err(__('You entered an invalid model "'.$enteredModel.'". Please try again.', true));
+                $this->err(__('You entered an invalid model "'.$enteredModel.'". Please try again.'));
                 return $this->_interactive();
             }
         }
