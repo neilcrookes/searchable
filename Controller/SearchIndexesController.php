@@ -3,7 +3,7 @@ class SearchIndexesController extends SearchableAppController {
 
   var $name = 'SearchIndexes';
   var $paginate = array('SearchIndex' => array('limit' => 10));
-  var $helpers = array('Searchable');
+  var $helpers = array('Searchable.Searchable');
 
   function index() {
 
@@ -35,17 +35,17 @@ class SearchIndexesController extends SearchableAppController {
     );
 
     // Add type condition if not All
-    if (isset($this->params['type'])
-    && $this->params['type'] != 'All') {
-      $this->data['SearchIndex']['type'] = $this->params['type'];
-      $this->paginate['SearchIndex']['conditions']['model'] = $this->params['type'];
+    if (isset($this->request->params['named']['type'])
+    && $this->request->params['named']['type'] != 'All') {
+      $this->data['SearchIndex']['type'] = $this->request->params['named']['type'];
+      $this->paginate['SearchIndex']['conditions']['model'] = $this->request->params['named']['type'];
     }
 
     // Add term condition, and sorting
-    if (isset($this->params['term'])
-    && $this->params['term'] != 'null') {
-      $this->data['SearchIndex']['term'] = $this->params['term'];
-      $term = $this->params['term'];
+    if (isset($this->request->params['named']['term'])
+    && $this->request->params['named']['term'] != 'null') {
+      $this->request->data['SearchIndex']['term'] = $this->request->params['named']['term'];
+      $term = $this->request->params['named']['term'];
       App::import('Core', 'Sanitize');
       $term = Sanitize::escape($term);
       $this->paginate['SearchIndex']['conditions'][] = "MATCH(data) AGAINST('$term' IN BOOLEAN MODE)";

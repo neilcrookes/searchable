@@ -226,17 +226,15 @@ class SearchableBehavior extends ModelBehavior {
 
     if (empty($nonStandardUrlComponents)) {
       $url[] = $this->_foreignKey;
-      $this->SearchIndex->data['SearchIndex']['url'] = json_encode($url);
-      return;
-    }
-
-    $nonStandardUrlComponentsValues = array();
-
-//    foreach ($nonStandardUrlComponents as $component) {
-//    	;
-//    }
-
-
+	} else {		
+		$url = array_intersect_key($url, array_flip(array('plugin', 'controller', 'action')));
+		
+		foreach($nonStandardUrlComponents as $component) {
+			 $url[] = $this->_modelData[$model->alias][$component];
+		}
+	}
+	
+    $this->SearchIndex->data['SearchIndex']['url'] = json_encode($url);
   }
 
   /**

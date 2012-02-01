@@ -42,7 +42,7 @@ class BuildSearchIndexShell extends Shell {
     $this->hr();
 
     // Figure out which db config we are using
-    $this->_setDbConfig();
+    //$this->_setDbConfig();
 
     // Determine the models for the selected db config that have Searchable
     $this->_setAvailableModels();
@@ -57,17 +57,17 @@ class BuildSearchIndexShell extends Shell {
     foreach ($modelNames as $modelName) {
 
       // Confirm rebuild index for this model
-      $skip = $this->in(__("Are you sure you want to rebuild the search index for $modelName, 'y' or 'n' or 'q' to exit", true), null, 'n');
+      $skip = $this->in(__("Are you sure you want to rebuild the search index for $modelName, 'y' or 'n' or 'q' to exit"), null, 'n');
 
       // Quit if they want to
       if (strtolower($skip) === 'q') {
-        $this->out(__("Exit", true));
+        $this->out(__("Exit"));
         $this->_stop();
       }
 
       // Skip if they want to
       if (strtolower($skip) !== 'y') {
-        $this->out(__("Skipping " . $modelName, true));
+        $this->out(__("Skipping " . $modelName));
         continue;
       }
 
@@ -76,7 +76,7 @@ class BuildSearchIndexShell extends Shell {
 
       // Delete the records in the search index for the current model
       if (!$ModelObj->deleteSearchIndex(true)) {
-        $this->err(__('Could not delete search index', true));
+        $this->err(__('Could not delete search index'));
         $this->_stop();
       }
 
@@ -113,7 +113,7 @@ class BuildSearchIndexShell extends Shell {
     $configs = array_keys($configs);
     // Prompt if multiple, which db config to use.
     if (count($configs) > 1) {
-      $this->_useDbConfig = $this->in(__('Use Database Config', true) .':', $configs, 'default');
+      $this->_useDbConfig = $this->in(__('Use Database Config') .':', $configs, 'default');
     } else { // else use the only one
       $this->_useDbConfig = current($configs);
     }
@@ -125,10 +125,10 @@ class BuildSearchIndexShell extends Shell {
   protected function _setAvailableModels() {
 
     // Initialise paths array with paths to app/models
-    $paths = array(MODELS);
+    $paths = App::path('Model');
 
     // Get a list of the plugins
-    $plugins = Configure::listObjects('plugin');
+    $plugins = App::objects('plugin');
 
     // For each plugin, add the plugin model path to paths and instantiate the
     // plugin AppModel in case the plugin contains a model that is Searchable
@@ -142,16 +142,14 @@ class BuildSearchIndexShell extends Shell {
 
     // Get a list of all the models in all the paths and sort them
     // alphabetically
-    $modelNames = Configure::listObjects('model', $paths);
+    $modelNames = App::objects('Model');//, $paths);
     sort($modelNames);
 
     // Store those that exist and have Searchable attached
     foreach ($modelNames as $modelName) {
 
-      // Try to import the model
-      if (!App::import('Model', $modelName, true, $paths)) {
-        continue;
-      }
+	  // not needed - CakePHP 2 will lazy load models as reqd
+	  //App::uses($modelName, 'Model');
 
       // If Searchable not attached, skip
       if (!ClassRegistry::init($modelName)->Behaviors->attached('Searchable')) {
@@ -172,7 +170,7 @@ class BuildSearchIndexShell extends Shell {
    */
   protected function _interactive() {
 
-    $this->out(__('Possible Models based on your current database:', true));
+    $this->out(__('Possible Models based on your current database:'));
 
     // List available mode names with numbers for easy selection
     $i = 1;
@@ -185,11 +183,11 @@ class BuildSearchIndexShell extends Shell {
     while ($enteredModel == '') {
 
       // Prompt them for a selection
-      $enteredModel = $this->in(__("Enter one or more numbers from the list above separated by a space, or type in the names of one or more other models, 'a' for all or 'q' to exit", true), null, 'q');
+      $enteredModel = $this->in(__("Enter one or more numbers from the list above separated by a space, or type in the names of one or more other models, 'a' for all or 'q' to exit"), null, 'q');
 
       // Quit if they want to
       if (strtolower($enteredModel) === 'q') {
-        $this->out(__("Exit", true));
+        $this->out(__("Exit"));
         $this->_stop();
       }
 
@@ -234,7 +232,7 @@ class BuildSearchIndexShell extends Shell {
         $selectedModelNames[] = Inflector::camelize($enteredModel);
       // Else, tell them it didn't work, and send them back to the start
       } else {
-        $this->err(__('You entered an invalid model "'.$enteredModel.'". Please try again.', true));
+        $this->err(__('You entered an invalid model "'.$enteredModel.'". Please try again.'));
         return $this->_interactive();
       }
     }
