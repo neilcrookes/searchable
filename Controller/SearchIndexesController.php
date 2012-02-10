@@ -15,7 +15,9 @@ class SearchIndexesController extends SearchableAppController {
         // Get types for select drop down
         $types = $this->SearchIndex->getTypes();
 
-        $this->set(compact('results', 'term', 'types'));
+		$meta_robots = "noindex";
+
+        $this->set(compact('results', 'term', 'types', 'meta_robots'));
         $this->pageTitle = 'Search';
     }
 
