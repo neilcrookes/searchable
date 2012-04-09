@@ -1,7 +1,33 @@
 <?php
+/**
+ * The SearchIndex Model
+ * 
+ * @package searchable
+ * @subpackage searchable.models
+ */
 class SearchIndex extends SearchableAppModel {
+/**
+ * The Model name
+ * 
+ * @var string
+ * @access public
+ */
     var $name = 'SearchIndex';
+
+/**
+ * The table the Model should use
+ * 
+ * @var string
+ * @access public
+ */
     var $useTable = 'search_index';
+
+/**
+ * Custom find methods for this Model
+ * 
+ * @var array
+ * @access protected
+ */
     var $_findMethods = array(
         'search' => true, 'types' => true
     );
@@ -99,5 +125,4 @@ class SearchIndex extends SearchableAppModel {
     function replace($v) {
         return str_replace(array(' +-', ' +~', ' ++', ' +'), array('-', '~', '+', '+'), " +{$v}");
     }
-
 }
