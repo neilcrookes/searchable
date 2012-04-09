@@ -1,0 +1,124 @@
+h1. Searchable Plugin
+
+Quick and easy json-backed search indexes for your application
+
+h2. Background
+
+Most web applications eventually have to touch search in some capacity. It is well known that @LIKE@ queries are database intensive, due to the necessity of creating a temporary table to store intermediate results. Installing an application like Sphinx or Solr is not always an option on some hosts, and Zend's implementation of Lucene tends to bog down on large datasets. It can also be non-trivial to implement an easy to use, MyISAM-backed full-text search index, capable of supporting various types of sorting and searching.
+
+Using the Searchable plugin, it should be easy to implement a site-wide search index for your application, and trivial to extend at a later date.
+
+h2. Requirements
+
+* CakePHP 1.3
+* Patience
+* (PHP 5 >= 5.2.0, PECL json >= 1.2.0)
+
+h2. Installation
+
+_[Manual]_
+
+# Download this: http://github.com/josegonzalez/searchable/zipball/master
+# Unzip that download.
+# Copy the resulting folder to app/plugins
+# Rename the folder you just copied to @searchable@
+
+_[GIT Submodule]_
+
+In your app directory type:
+<pre><code>git submodule add git://github.com/josegonzalez/searchable.git plugins/searchable
+git submodule init
+git submodule update
+</code></pre>
+
+_[GIT Clone]_
+
+In your plugin directory type
+<pre><code>git clone git://github.com/josegonzalez/searchable.git searchable</code></pre>
+
+h2. Usage Searchable Behavior
+
+# Run the SQL code contained in @searchable/config/sql@. Those using the CakeDC @Migrations@  plugin can also use the included Migrations file, in @searchable/config/migrations@. A @schema.php@ file is forthcoming.
+# Attach the Searchable Behavior to the models in your app that you want to search:
+<pre><code>var $actsAs = array('Searchable.Searchable');</code></pre>
+# Build the search index by running the included @build_search_index@ shell:
+<pre><code>cake build_search_index</code></pre>
+# Add the @searchable/config/routes.php@ file to your @app/config/routes.php@
+<pre><code>// app/config/routes.php
+include(APP.'plugins'.DS.'searchable'.DS.'config'.DS.'routes.php');
+</code></pre>
+# Add the search form element to a page in your site, or in the default.ctp layout file e.g.
+<pre><code>echo $this->element('form', array('plugin' => 'searchable'));</code></pre>
+
+Now type something in the search box and go.
+
+h2. Usage Queryable Behavior
+
+This Behavior is there to decouple indexing from querying.
+
+If you both want to query and index the Model directly, just attach both @Searchable@ and @Queryable@ Behaviors to the Model. Otherwise you can still use the @SearchIndex@ Model to do queries on the search index directly.
+
+# Attach the Queryable Behavior to the models in your app that you want to search (with default settings):
+<pre><code>
+var $actsAs = array(
+	'Searchable.Queryable' => array(
+		'searchModel' => 'Searchable.SearchIndex',
+		'searchField' => 'data',
+		'foreignKey' => 'foreign_key',
+		'modelIdentifier' => 'model'
+	)
+);
+</code></pre>
+# Add a 'term' key to your find parameters in @Model::find()@:
+<pre><code>$this->Model->find('all', array('term' => '+Foo -Bar'));</code></pre>
+
+Enjoy the matched results
+
+h2. Notes
+
+* You'll notice on the search results page you can restrict your search to a single model.
+* Search results are paginated.
+* Search terms are added to the @URL@ so you can deep link to search results
+* The search supports MySQL Full Text Search in boolean mode, so you can do things like searching for phrases using quotes and excluding words using the minus sign
+* The search_index table has a scope field which is a boolean (tinyint 1) and is set to 1 by default, but if you specify some normal cakephp conditions in the scope setting when you attach the Searchable Behavior, this will be set depending on whether these conditions are met for that particular record. E.g.@var $actsAs = array('Searchable.Searchable' => array('scope' => array('Post.active' => 1)));@
+* Data from your model is stored in the @data@ field of the search_index table and is json_encode'd. This is to circumvent one of the issues of the Searchable behavior I found earlier that someone noted in the issues list – if you call saveField, only that field's data got saved in the search_index table. With this behavior, when editing a record, if not all fields are present in the data you are saving, the existing content of the data field is merged with the new data you are saving, so you don't lose any data that you had previously.
+* By default, all string type fields are included in the @json_encode@'d data field, but you can override this if necessary using the 'fields' setting when you attach the behavior. E.g. @var $actsAs = array('Searchable.Searchable' => array('fields' => array('title', 'abstract', 'body', 'published')));@
+* Sometimes it's useful to be able to search for associated data as well, e.g. the name of the Category that a Post belongsTo, to achieve this you can do the following: @var $actsAs = array('Searchable.Searchable' => array('fields' => array('title', 'abstract', 'body', 'category_id' => 'Category.name')));@ I.e. the foreign key field in the searchable model => the model.field you want to fetch the value from.
+* The @search_index@ table also includes fields for @name@ and @summary@, you can configure which fields in your model are used to populate these fields in the search_index table in the settings array too. What goes in here are what's displayed in the search results.
+* If your data uses a published date field (or equivalent) to determine whether content should be displayed or not, as an alternative or in addition to scope, the @search_index@ table also has a published field, and again you can configure which field in your model should map through to it. The search results are scope to only display records whose published field is null (which it will be by default if you have no published data), or the published date is in the past – but you can configure this as required by your app. For example on another app I've used this on I changed these conditions to published in the past, but not more than 6 months ago, or if logged in (i.e. an administrator), display future content as well so they can preview stuff.
+* By default, the search result will link through to the controller for the model of that search result, it's view action, and pass the id of the record as a parameter. You can configure this to some extent at the moment, e.g. if your model is actually in another plugin, you can add this to the settings, but that's about it at the moment, so no slugs or anything like that. If you need to configure the url formats, suggest you just amend the @views/plugins/searchable/search_indexes/index.ctp@ view file to your requirements.
+* You can override the following methods in your Model:
+    @Model::cleanValue()@: Removes html, trims and converts html entities back to normal text.
+    @Model::getSearchableData()@: Returns the data extracted from @$model->data@ for saving a single search index
+    @Model::getAllSearchableData()@: Returns the data extracted from @$model->data@ for saving via the included shell
+* It is possible to use your own custom controller action. The included Controller can be seen as an example of how to use the included @SearchComponent@. The only change necessary is to call @$this->loadModel('Searchable.SearchIndex');@ before calling @$this->Search->paginate($term);@;
+
+h2. TODO
+
+The following is a list of things I am planning to implement, in order of most likely to be implemented first.
+
+* Unit Tests!!!
+* Searching without boolean mode
+* Proper docblocking and documentation
+
+h2. License
+
+Copyright (c) 2010 Neil Crookes
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
